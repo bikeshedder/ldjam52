@@ -1,0 +1,8 @@
+actions:
+  - text: Ignite the fireplace
+    conditions:
+      - item: wood
+      - item: lighter
+      - state: { not: fireplace }
+    action:
+      - toggle: fireplace
