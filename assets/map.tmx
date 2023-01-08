@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.9" tiledversion="1.9.2" orientation="isometric" renderorder="right-down" width="31" height="31" tilewidth="128" tileheight="64" infinite="0" nextlayerid="6" nextobjectid="1">
- <tileset firstgid="1" name="village_interiors" tilewidth="339" tileheight="393" tilecount="336" columns="1" fillmode="preserve-aspect-fit">
-  <tileoffset x="-10" y="96"/>
+<map version="1.9" tiledversion="1.9.2" orientation="isometric" renderorder="right-down" width="31" height="31" tilewidth="128" tileheight="64" infinite="0" nextlayerid="7" nextobjectid="1">
+ <editorsettings>
+  <export target="map..tmx" format="tmx"/>
+ </editorsettings>
+ <tileset firstgid="1" name="village_interiors" tilewidth="339" tileheight="393" tilecount="310" columns="1" fillmode="preserve-aspect-fit">
+  <tileoffset x="-10" y="10"/>
   <grid orientation="isometric" width="1" height="1"/>
   <tile id="0">
    <image width="148" height="277" source="tilesets/village_interiors/ISO_Column_Wood_01_High_01.png"/>
@@ -918,89 +921,11 @@
   <tile id="304">
    <image width="148" height="164" source="tilesets/village_interiors/ISO_Furniture_Stool_Wood_01.png"/>
   </tile>
-  <tile id="305">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_00.png"/>
-  </tile>
-  <tile id="306">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_01.png"/>
-  </tile>
-  <tile id="307">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_02.png"/>
-  </tile>
-  <tile id="308">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_03.png"/>
-  </tile>
-  <tile id="309">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_04.png"/>
-  </tile>
-  <tile id="310">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_05.png"/>
-  </tile>
-  <tile id="311">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_06.png"/>
-  </tile>
-  <tile id="312">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_07.png"/>
-  </tile>
-  <tile id="313">
-   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_Template.png"/>
-  </tile>
   <tile id="314">
    <image width="148" height="277" source="tilesets/village_interiors/ISO_Tile_Template_27.png"/>
   </tile>
   <tile id="315">
    <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Slab_01.png"/>
-  </tile>
-  <tile id="316">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Stone_01.png"/>
-  </tile>
-  <tile id="317">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Template.png"/>
-  </tile>
-  <tile id="318">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_01.png"/>
-  </tile>
-  <tile id="319">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_Blue_01.png"/>
-  </tile>
-  <tile id="320">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_Green_01.png"/>
-  </tile>
-  <tile id="321">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_Red_01.png"/>
-  </tile>
-  <tile id="322">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_01.png"/>
-  </tile>
-  <tile id="323">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_02.png"/>
-  </tile>
-  <tile id="324">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_03.png"/>
-  </tile>
-  <tile id="325">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_04.png"/>
-  </tile>
-  <tile id="326">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_05.png"/>
-  </tile>
-  <tile id="327">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_06.png"/>
-  </tile>
-  <tile id="328">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_07.png"/>
-  </tile>
-  <tile id="329">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_08.png"/>
-  </tile>
-  <tile id="330">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Air_01.png"/>
-  </tile>
-  <tile id="331">
-   <image width="240" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Air_01_Tall 1.png"/>
-  </tile>
-  <tile id="332">
-   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Air_01_Tall.png"/>
   </tile>
   <tile id="333">
    <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Floor_01.png"/>
@@ -1012,19 +937,109 @@
    <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Floor_02.png"/>
   </tile>
  </tileset>
+ <tileset firstgid="339" name="floors" tilewidth="148" tileheight="164" tilecount="9" columns="0">
+  <tileoffset x="-10" y="96"/>
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_00.png"/>
+  </tile>
+  <tile id="1">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_01.png"/>
+  </tile>
+  <tile id="2">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_02.png"/>
+  </tile>
+  <tile id="3">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_03.png"/>
+  </tile>
+  <tile id="4">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_04.png"/>
+  </tile>
+  <tile id="5">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_05.png"/>
+  </tile>
+  <tile id="6">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_06.png"/>
+  </tile>
+  <tile id="7">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_07.png"/>
+  </tile>
+  <tile id="8">
+   <image width="148" height="164" source="tilesets/village_interiors/Iso_Tile_Floor_Template.png"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="348" name="walls" tilewidth="148" tileheight="277" tilecount="6" columns="0">
+  <tileoffset x="-10" y="10"/>
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Stone_01.png"/>
+  </tile>
+  <tile id="1">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Template.png"/>
+  </tile>
+  <tile id="2">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_01.png"/>
+  </tile>
+  <tile id="3">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_Blue_01.png"/>
+  </tile>
+  <tile id="4">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_Green_01.png"/>
+  </tile>
+  <tile id="5">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Wall_Wood_Red_01.png"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="365" name="windows" tilewidth="240" tileheight="277" tilecount="11" columns="0">
+  <tileoffset x="-10" y="42"/>
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_01.png"/>
+  </tile>
+  <tile id="1">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_02.png"/>
+  </tile>
+  <tile id="2">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_03.png"/>
+  </tile>
+  <tile id="3">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_04.png"/>
+  </tile>
+  <tile id="4">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_05.png"/>
+  </tile>
+  <tile id="5">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_06.png"/>
+  </tile>
+  <tile id="6">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_07.png"/>
+  </tile>
+  <tile id="7">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_08.png"/>
+  </tile>
+  <tile id="8">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Air_01.png"/>
+  </tile>
+  <tile id="9">
+   <image width="240" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Air_01_Tall 1.png"/>
+  </tile>
+  <tile id="10">
+   <image width="148" height="277" source="tilesets/village_interiors/Iso_Window_Glow_Air_01_Tall.png"/>
+  </tile>
+ </tileset>
  <layer id="1" name="Floor" width="31" height="31">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,341,341,341,341,341,341,341,341,341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,307,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,308,308,308,308,308,308,308,308,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -1085,15 +1100,15 @@
  <layer id="3" name="Walls" width="31" height="31">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,319,319,319,319,319,319,319,319,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,0,2147483971,0,2147483878,2147483971,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,230,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,323,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,319,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,350,350,350,350,350,350,350,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,2147483878,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,230,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,350,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -1117,15 +1132,15 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer id="2" name="Furniture" width="31" height="31">
+ <layer id="2" name="Furniture/Windows" width="31" height="31">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,2147483947,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,2147484013,0,0,2147484013,0,2147483947,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,196,100,305,0,2147483951,2147483952,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,90,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,105,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,111,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,365,111,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,114,0,0,94,0,0,225,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -1187,4 +1202,5 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup id="6" name="Objects"/>
 </map>

@@ -60,8 +60,10 @@
             "scaleInEditor": 0.0625
         }
     },
-    "last.imagePath": "C:/Users/bikeshedder/projects/ldjam52/assets/tilesets/tim",
+    "last.exportedFilePath": "C:/Users/bikeshedder/projects/ldjam52/assets",
+    "last.imagePath": "C:/Users/bikeshedder/projects/ldjam52/assets/tilesets/village_interiors",
     "map.height": 30,
+    "map.lastUsedExportFilter": "All Files (*)",
     "map.lastUsedFormat": "tmx",
     "map.orientation": null,
     "map.tileHeight": 64,
