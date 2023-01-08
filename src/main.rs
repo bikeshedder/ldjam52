@@ -1,58 +1,111 @@
-use std::{default, time::Duration};
-
-use bevy::{animation, asset::LoadState, prelude::*, utils::HashMap};
+use bevy::{ecs::system::EntityCommands, prelude::*};
 use components::{
-    animation::{Animation, AnimationBundle, AnimationState},
+    animation::{Animation, AnimationState},
+    interaction::Interaction,
     player::Player,
 };
+use data::entity_types::{load_entity_types, EntityType, EntityTypes, Loaded};
+use helpers::z_index;
 use plugins::tiled;
 use systems::{
     animation::{animation_system, AnimationTimer},
     camera::camera_system,
     input::player_input,
     player::player_system,
+    textures::{check_textures, load_textures},
 };
 
 use crate::tiled::TiledMapPlugin;
 
 mod components;
+mod data;
+mod helpers;
 mod plugins;
 mod systems;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum AppState {
+pub enum AppState {
     Loading,
     Game,
 }
 
-#[derive(Resource, Default)]
-struct EntitySprites {
-    handles: Vec<HandleUntyped>,
+#[derive(Default, Resource)]
+pub struct ImageHandles {
+    handles: Vec<Handle<Image>>,
 }
 
-fn load_textures(mut entity_sprites: ResMut<EntitySprites>, asset_server: Res<AssetServer>) {
-    entity_sprites.handles = asset_server.load_folder("entities/player").unwrap();
-}
-
-fn check_textures(
-    mut state: ResMut<State<AppState>>,
-    entity_sprites: ResMut<EntitySprites>,
-    asset_server: Res<AssetServer>,
-) {
-    if let LoadState::Loaded =
-        asset_server.get_group_load_state(entity_sprites.handles.iter().map(|handle| handle.id))
-    {
-        state.set(AppState::Game).unwrap();
+impl ImageHandles {
+    pub fn add(&mut self, handle: Handle<Image>) -> usize {
+        let index = self.handles.len();
+        self.handles.push(handle);
+        index
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    entity_sprites: Res<EntitySprites>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    mut textures: ResMut<Assets<Image>>,
+fn spawn_entity(
+    commands: &mut Commands,
+    entity_type: &EntityType,
+    translation: Vec3,
+    animation_name: Option<&'static str>,
+    f: fn(cmd: &mut EntityCommands),
 ) {
+    let mut entity_cmds = match entity_type.loaded.as_ref().unwrap() {
+        Loaded::Static(handle) => commands.spawn(SpriteBundle {
+            texture: handle.clone(),
+            transform: Transform {
+                translation,
+                ..Default::default()
+            },
+            ..Default::default()
+        }),
+        Loaded::Animations(animations) => {
+            let cmd = commands.spawn((
+                SpriteSheetBundle {
+                    texture_atlas: animations.atlas.clone(),
+                    // FIXME pass optional initial frame
+                    sprite: TextureAtlasSprite {
+                        index: animation_name
+                            .map(|name| animations.frames[name][0].0)
+                            .unwrap(),
+                        ..Default::default()
+                    },
+                    transform: Transform {
+                        translation,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                Animation {
+                    frames: animations.frames.clone(),
+                },
+                AnimationState {
+                    animation: animation_name.unwrap(),
+                    restart: true,
+                    index: 0,
+                },
+                AnimationTimer::from_seconds(0.0, TimerMode::Repeating),
+            ));
+            cmd
+        }
+        _ => unimplemented!(),
+    };
+    if let Some(interaction) = &entity_type.interaction {
+        entity_cmds.insert(Interaction {
+            name: interaction.name.clone(),
+            center: Vec3::new(
+                translation.x - f32::from(entity_type.size.width) / 2.0
+                    + f32::from(interaction.position.x),
+                translation.y + f32::from(entity_type.size.height) / 2.0
+                    - f32::from(interaction.position.y),
+                0.0,
+            ),
+            max_distance: interaction.max_distance,
+        });
+    }
+    f(&mut entity_cmds);
+}
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: Res<EntityTypes>) {
     commands.spawn(Camera2dBundle::default());
     /*
     commands.spawn((
@@ -65,51 +118,15 @@ fn setup(
     ));
     */
 
-    for handle in &entity_sprites.handles {
-        log::info!("{:?}", handle);
-    }
-
-    let image_handles: Vec<Handle<Image>> = (0..=9)
-        .map(|n| format!("entities/player/LD_23_Mouse_Walkcycle_{n:02}.png"))
-        .map(|n| asset_server.get_handle(n))
-        .collect::<Vec<_>>();
-
-    let mut builder = TextureAtlasBuilder::default();
-    for handle in image_handles {
-        let image = textures.get(&handle).unwrap();
-        builder.add_texture(handle, image);
-    }
-
-    let atlas = builder.finish(&mut textures).unwrap();
-    let atlas_handle = texture_atlases.add(atlas);
-
-    // let mut atlas_builder = TextureAtlasBuilder::default();
-    // for handle in
-
-    // atlas_builder
-    //     .atlas_builder
-    //     .add_texture(asset_server.load("entities/player/LD_23_Mouse_Walkcycle_00.png"));
-
-    commands.spawn((
-        Player::default(),
-        SpriteSheetBundle {
-            texture_atlas: atlas_handle,
-            sprite: TextureAtlasSprite {
-                index: 0,
-                ..default()
-            },
-            // FIXME use iso_to_screen function instead
-            transform: Transform::from_xyz(0.0, 0.0, 100.0),
-            ..Default::default()
+    spawn_entity(
+        &mut commands,
+        &entity_types["player"],
+        Vec3::default(),
+        Some("idle_down"),
+        |cmd| {
+            cmd.insert(Player::default());
         },
-        AnimationBundle::new(
-            HashMap::from([(
-                "walk_ne".to_owned(),
-                (0..=9).map(|i| (i, Duration::from_millis(150))).collect(),
-            )]),
-            "walk_ne",
-        ),
-    ));
+    );
 
     let map_handle: Handle<tiled::TiledMap> = asset_server.load("map.tmx");
 
@@ -119,9 +136,11 @@ fn setup(
     });
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let entity_types = load_entity_types()?;
     App::new()
-        .init_resource::<EntitySprites>()
+        .init_resource::<ImageHandles>()
+        .insert_resource(entity_types)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: String::from("LDJAM52"),
@@ -142,4 +161,5 @@ fn main() {
                 .with_system(animation_system),
         )
         .run();
+    Ok(())
 }

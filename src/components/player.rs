@@ -18,10 +18,10 @@ pub enum PlayerState {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PlayerDirection {
-    Left,
-    Right,
-    Up,
-    Down,
+    NE,
+    NW,
+    SE,
+    SW,
 }
 
 #[derive(Debug, Default)]
@@ -137,23 +137,16 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn primary_direction(&self) -> Option<PlayerDirection> {
-        self.input
-            .x
-            .abs()
-            .partial_cmp(&self.input.y.abs())
-            .and_then(|ord| match ord {
-                Ordering::Less => self.input.y.partial_cmp(&0.0).and_then(|ord| match ord {
-                    Ordering::Less => Some(PlayerDirection::Down),
-                    Ordering::Greater => Some(PlayerDirection::Up),
-                    _ => None,
-                }),
-                _ => self.input.x.partial_cmp(&0.0).and_then(|ord| match ord {
-                    Ordering::Less => Some(PlayerDirection::Left),
-                    Ordering::Greater => Some(PlayerDirection::Right),
-                    _ => None,
-                }),
-            })
+    pub fn primary_direction(&self) -> PlayerDirection {
+        match (self.input.x >= 0.0, self.input.y > 0.0) {
+            (true, true) => PlayerDirection::NE,
+            (false, true) => PlayerDirection::NW,
+            (true, false) => PlayerDirection::SE,
+            (false, false) => PlayerDirection::SW,
+        }
+    }
+    pub fn is_moving(&self) -> bool {
+        self.input.x != 0.0 || self.input.y != 0.0
     }
 }
 
@@ -162,36 +155,8 @@ impl Default for Player {
         Self {
             input: PlayerInput::default(),
             state: PlayerState::Idle,
-            direction: PlayerDirection::Right,
+            direction: PlayerDirection::SE,
             center: Vec3::new(0.0, -40.0, 0.0),
         }
-    }
-}
-
-#[test]
-fn test_primary_direction() {
-    for (x, y, dir) in &[
-        (0.0, 0.0, None),
-        (1.0, 0.0, Some(PlayerDirection::Right)),
-        (1.0, 0.5, Some(PlayerDirection::Right)),
-        (-1.0, 0.0, Some(PlayerDirection::Left)),
-        (-1.0, 0.5, Some(PlayerDirection::Left)),
-        (0.0, 1.0, Some(PlayerDirection::Up)),
-        (0.5, 1.0, Some(PlayerDirection::Up)),
-        (0.0, -1.0, Some(PlayerDirection::Down)),
-        (0.5, -1.0, Some(PlayerDirection::Down)),
-    ] {
-        assert_eq!(
-            Player {
-                input: PlayerInput {
-                    x: *x,
-                    y: *y,
-                    ..Default::default()
-                },
-                ..Default::default()
-            }
-            .primary_direction(),
-            *dir,
-        )
     }
 }

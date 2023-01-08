@@ -1,0 +1,51 @@
+width: 256
+height: 256
+animations:
+  idle_up:
+    - image: "LD_23_Mouse_Walkcycle_Back__00.png"
+      duration: 1000
+    - image: "LD_23_Mouse_Walkcycle_Back__01.png"
+      duration: 1000
+  idle_down:
+    - image: "LD_23_Mouse_Walkcycle_00.png"
+      duration: 1000
+    - image: "LD_23_Mouse_Walkcycle_01.png"
+      duration: 1000
+  walk_up:
+    - image: "LD_23_Mouse_Walkcycle_Back__00.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__01.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__02.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__03.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__04.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__05.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__06.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_Back__07.png"
+      duration: 50
+  walk_down:
+    - image: "LD_23_Mouse_Walkcycle_00.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_01.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_02.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_03.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_04.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_05.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_06.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_07.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_08.png"
+      duration: 50
+    - image: "LD_23_Mouse_Walkcycle_09.png"
+      duration: 50

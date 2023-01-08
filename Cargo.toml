@@ -9,6 +9,8 @@ edition = "2021"
 anyhow = "1.0.68"
 bevy = { version = "0.9.1", features = ["dynamic"] }
 log = "0.4.17"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_yaml = "0.9.16"
 #tiled = "0.10.1"
 tiled = { git = "https://github.com/mapeditor/rs-tiled", commit = "763e0223ce5e97dff464a8bac346996c6835046d" }
 
