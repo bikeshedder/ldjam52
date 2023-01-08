@@ -2793,7 +2793,7 @@ dependencies = [
 [[package]]
 name = "tiled"
 version = "0.10.2"
-source = "git+https://github.com/bikeshedder/rs-tiled?branch=tileoffset#b11aaad0978e4af4c6084e4ba64d43638afaa133"
+source = "git+https://github.com/mapeditor/rs-tiled#763e0223ce5e97dff464a8bac346996c6835046d"
 dependencies = [
  "base64",
  "libflate",
