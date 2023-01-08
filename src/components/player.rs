@@ -93,8 +93,8 @@ impl PlayerInput {
             _ => 0.0,
         };
         Self {
-            x: (axis.get(axis_lx).unwrap_or(0.0) + dpadx).clamp(-1.0, 1.0),
-            y: (axis.get(axis_ly).unwrap_or(0.0) + dpady).clamp(-1.0, 1.0),
+            x: (deadzone(axis.get(axis_lx).unwrap_or(0.0)) + dpadx).clamp(-1.0, 1.0),
+            y: (deadzone(axis.get(axis_ly).unwrap_or(0.0)) + dpady).clamp(-1.0, 1.0),
             interact: button.pressed(interact),
             back: button.just_pressed(back),
         }
@@ -108,6 +108,14 @@ impl PlayerInput {
         }
         self.x = self.x.clamp(-1.0, 1.0);
         self.y = self.y.clamp(-1.0, 1.0);
+    }
+}
+
+fn deadzone(value: f32) -> f32 {
+    if value.abs() > 0.2 {
+        value
+    } else {
+        0.0
     }
 }
 
