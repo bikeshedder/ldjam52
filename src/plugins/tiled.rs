@@ -10,7 +10,7 @@
 use std::io::BufReader;
 
 use bevy::prelude::{BuildChildren, SpatialBundle};
-use bevy::sprite::{Sprite, SpriteBundle};
+use bevy::sprite::{Anchor, Sprite, SpriteBundle};
 use bevy::utils::default;
 use bevy::{
     asset::{AssetLoader, AssetPath, LoadedAsset},
@@ -181,18 +181,27 @@ pub fn process_loaded_maps(
 
                 for x in 0..map.width {
                     for y in 0..map.height {
-                        let Some(tile) = layer_data.get_tile(x as i32, y as i32) else {
+                        let Some(layer_tile) = layer_data.get_tile(x as i32, y as i32) else {
                             continue;
                         };
-                        let tiled_tileset = &tiled_map.tilesets[tile.tileset_index()];
-                        let image = tiled_tileset.images[tile.id() as usize].clone();
+                        let tiled_tileset = &tiled_map.tilesets[layer_tile.tileset_index()];
+                        let image_handle = tiled_tileset.images[layer_tile.id() as usize].clone();
+                        let tileset = &tiled_map.map.tilesets()[layer_tile.tileset_index()];
                         commands.entity(map_entity).with_children(|parent| {
                             parent.spawn(SpriteBundle {
-                                texture: image,
-                                transform: iso_to_screen(&map, x, y, layer_index),
+                                texture: image_handle,
+                                transform: iso_to_screen(
+                                    &map,
+                                    x,
+                                    y,
+                                    layer_index,
+                                    tileset.offset_x,
+                                    tileset.offset_y,
+                                ),
                                 sprite: Sprite {
-                                    flip_x: tile.flip_h,
-                                    flip_y: tile.flip_v,
+                                    flip_x: layer_tile.flip_h,
+                                    flip_y: layer_tile.flip_v,
+                                    anchor: Anchor::BottomLeft,
                                     // FIXME flip_d ?
                                     ..default()
                                 },
@@ -206,15 +215,24 @@ pub fn process_loaded_maps(
     }
 }
 
-fn iso_to_screen(map: &tiled::Map, x: u32, y: u32, layer_index: usize) -> Transform {
+fn iso_to_screen(
+    map: &tiled::Map,
+    x: u32,
+    y: u32,
+    layer_index: usize,
+    offset_x: i32,
+    offset_y: i32,
+) -> Transform {
     let x = x as f32;
     let y = y as f32;
     let z = layer_index as f32;
     let tile_width = map.tile_width as f32;
     let tile_height = map.tile_height as f32;
+    let offset_x = offset_x as f32;
+    let offset_y = offset_y as f32;
     Transform::from_xyz(
-        ((x - y) * tile_width) / 2.0,
-        -((x + y) * tile_height) / 2.0,
+        ((x - y) * tile_width) / 2.0 + offset_x,
+        -(((x + y) * tile_height) / 2.0 + offset_y),
         (x + y) + z * 10.0 + 64.0,
     )
 }
