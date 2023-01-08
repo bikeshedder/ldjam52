@@ -9,7 +9,8 @@ edition = "2021"
 anyhow = "1.0.68"
 bevy = { version = "0.9.1", features = ["dynamic"] }
 log = "0.4.17"
-tiled = "0.10.1"
+#tiled = "0.10.1"
+tiled = { git = "https://github.com/bikeshedder/rs-tiled", branch = "tileoffset" }
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
