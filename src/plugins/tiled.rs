@@ -11,7 +11,7 @@ use std::io::BufReader;
 
 use bevy::prelude::{BuildChildren, SpatialBundle};
 use bevy::sprite::{Anchor, Sprite, SpriteBundle};
-use bevy::utils::default;
+use bevy::utils::{default, HashMap};
 use bevy::{
     asset::{AssetLoader, AssetPath, LoadedAsset},
     log,
@@ -44,7 +44,7 @@ pub struct TiledMap {
 
 #[derive(Debug, Default)]
 pub struct TiledTileset {
-    pub images: Vec<Handle<Image>>,
+    pub images: HashMap<u32, Handle<Image>>,
 }
 
 #[derive(Component, Default)]
@@ -88,7 +88,7 @@ impl AssetLoader for TiledLoader {
                 }
                 tileset_images.sort();
                 tilesets.push(TiledTileset {
-                    images: tileset_images.into_iter().map(|(_, tile)| tile).collect(),
+                    images: tileset_images.into_iter().collect(),
                 });
             }
             log::info!("Loaded map: {}", load_context.path().display());
@@ -185,7 +185,8 @@ pub fn process_loaded_maps(
                             continue;
                         };
                         let tiled_tileset = &tiled_map.tilesets[layer_tile.tileset_index()];
-                        let image_handle = tiled_tileset.images[layer_tile.id() as usize].clone();
+                        let image_handle =
+                            tiled_tileset.images.get(&layer_tile.id()).unwrap().clone();
                         let tileset = &tiled_map.map.tilesets()[layer_tile.tileset_index()];
                         commands.entity(map_entity).with_children(|parent| {
                             parent.spawn(SpriteBundle {
