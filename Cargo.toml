@@ -8,8 +8,6 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 bevy = { version = "0.9.1", features = ["dynamic"] }
-#bevy_ecs_tilemap = { version = "0.9.0", features = ["atlas"] }
-bevy_ecs_tilemap = { version = "0.9.0" }
 log = "0.4.17"
 tiled = "0.10.1"
 

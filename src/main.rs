@@ -1,15 +1,17 @@
-use bevy::{prelude::*, render::camera::{ScalingMode}};
-use bevy_ecs_tilemap::TilemapPlugin;
-use components::{player::Player};
-use systems::{input::player_input, player::player_system, camera::camera_system};
+use bevy::prelude::*;
+use components::player::Player;
+use plugins::tiled;
+use systems::{camera::camera_system, input::player_input, player::player_system};
 
 use crate::tiled::TiledMapPlugin;
 
 mod components;
+mod plugins;
 mod systems;
-mod tiled;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(Camera2dBundle::default());
+    /*
     commands.spawn((
         {
             let mut bundle = Camera2dBundle::default();
@@ -18,26 +20,34 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             bundle
         },
     ));
+    */
     commands.spawn((
         Player::default(),
         SpriteBundle {
             texture: asset_server.load("entities/player.png"),
+            // FIXME use iso_to_screen function instead
+            transform: Transform::from_xyz(0.0, 0.0, 100.0),
             ..Default::default()
-        }
+        },
     ));
 
-    let map_handle: Handle<tiled::TiledMap> = asset_server.load("maps/bedroom.tmx");
+    let map_handle: Handle<tiled::TiledMap> = asset_server.load("map.tmx");
 
     commands.spawn(tiled::TiledMapBundle {
         tiled_map: map_handle,
-        ..Default::default()
+        ..default()
     });
 }
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(TilemapPlugin)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                title: String::from("LDJAM52"),
+                ..default()
+            },
+            ..default()
+        }))
         .add_plugin(TiledMapPlugin)
         .add_startup_system(setup)
         .add_system(player_input)

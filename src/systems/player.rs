@@ -4,21 +4,11 @@ use bevy::{
     time::Time,
 };
 
-use crate::{
-    components::{
-        player::{Player, PlayerDirection, PlayerState},
-    },
-};
+use crate::components::player::{Player, PlayerDirection, PlayerState};
 
 pub const PLAYER_SPEED: f32 = 600.0;
 
-pub fn player_system(
-    time: Res<Time>,
-    mut query: Query<(
-        &mut Player,
-        &mut Transform,
-    )>,
-) {
+pub fn player_system(time: Res<Time>, mut query: Query<(&mut Player, &mut Transform)>) {
     let (mut player, mut transform) = query.single_mut();
     let delta = time.delta().as_secs_f32();
 
@@ -51,8 +41,7 @@ pub fn player_system(
         transform.translation = vec3(
             transform.translation.x + player.input.x * PLAYER_SPEED * delta,
             transform.translation.y + player.input.y * PLAYER_SPEED * delta,
-            0.0,
+            512.0, // FIXME this needs to be updated depending on the world position
         );
     }
-
 }
