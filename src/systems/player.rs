@@ -6,7 +6,7 @@ use bevy::{
 
 use crate::components::player::{Player, PlayerDirection, PlayerState};
 
-pub const PLAYER_SPEED: f32 = 600.0;
+pub const PLAYER_SPEED: f32 = 300.0;
 
 pub fn player_system(time: Res<Time>, mut query: Query<(&mut Player, &mut Transform)>) {
     let (mut player, mut transform) = query.single_mut();
