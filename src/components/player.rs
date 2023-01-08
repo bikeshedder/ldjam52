@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use bevy::{
     input::{Axis, Input},
     math::Vec3,

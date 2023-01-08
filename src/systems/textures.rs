@@ -54,7 +54,7 @@ pub fn check_textures(
         return;
     }
 
-    state.set(AppState::Game).unwrap();
+    state.set(AppState::Menu).unwrap();
 
     for (name, entity_type) in entity_types.types.iter_mut() {
         match &entity_type.image {

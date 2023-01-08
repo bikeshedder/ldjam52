@@ -1,4 +1,9 @@
-use bevy::{ecs::system::EntityCommands, prelude::*};
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig,
+    ecs::system::EntityCommands,
+    prelude::*,
+    render::camera::{CameraProjection, ScalingMode},
+};
 use components::{
     animation::{Animation, AnimationState},
     interaction::Interaction,
@@ -6,7 +11,7 @@ use components::{
 };
 use data::entity_types::{load_entity_types, EntityType, EntityTypes, Loaded};
 use helpers::z_index;
-use plugins::tiled;
+use plugins::{menu::Menu, tiled};
 use systems::{
     animation::{animation_system, AnimationTimer},
     camera::camera_system,
@@ -26,6 +31,7 @@ mod systems;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
     Loading,
+    Menu,
     Game,
 }
 
@@ -105,19 +111,24 @@ fn spawn_entity(
     f(&mut entity_cmds);
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: Res<EntityTypes>) {
-    commands.spawn(Camera2dBundle::default());
-    /*
-    commands.spawn((
-        {
-            let mut bundle = Camera2dBundle::default();
-            let proj = &mut bundle.projection;
-            proj.scaling_mode = ScalingMode::FixedHorizontal(1920.0);
-            bundle
+fn setup(mut commands: Commands) {
+    commands.spawn(Camera2dBundle {
+        camera_2d: Camera2d {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
         },
-    ));
-    */
+        projection: OrthographicProjection {
+            scaling_mode: ScalingMode::FixedHorizontal(1920.0),
+            ..default()
+        },
+        ..default()
+    });
+}
 
+fn game_setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    entity_types: Res<EntityTypes>,
+) {
     spawn_entity(
         &mut commands,
         &entity_types["player"],
@@ -134,6 +145,22 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
         tiled_map: map_handle,
         ..default()
     });
+
+    commands.spawn(TextBundle {
+        style: Style {
+            margin: UiRect::all(Val::Px(5.0)),
+            ..Default::default()
+        },
+        text: Text::from_section(
+            "Text Example",
+            TextStyle {
+                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font_size: 30.0,
+                color: Color::WHITE,
+            },
+        ),
+        ..Default::default()
+    });
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -148,11 +175,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
             ..default()
         }))
+        .add_plugin(Menu)
         .add_plugin(TiledMapPlugin)
         .add_state(AppState::Loading)
+        .add_startup_system(setup)
         .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_textures))
         .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_textures))
-        .add_system_set(SystemSet::on_enter(AppState::Game).with_system(setup))
+        .add_system_set(SystemSet::on_enter(AppState::Game).with_system(game_setup))
         .add_system_set(
             SystemSet::on_update(AppState::Game)
                 .with_system(player_input)
