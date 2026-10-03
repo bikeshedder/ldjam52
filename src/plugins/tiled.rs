@@ -134,7 +134,11 @@ fn external_tilesets(tmx: &str) -> impl Iterator<Item = &str> {
     tmx.split("source=\"")
         .skip(1)
         .filter_map(|rest| rest.split('"').next())
-        .filter(|source| source.ends_with(".tsx"))
+        .filter(|source| {
+            Path::new(source)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("tsx"))
+        })
 }
 
 #[derive(TypePath)]
