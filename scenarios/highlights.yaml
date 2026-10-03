@@ -10,9 +10,9 @@
 # The librarian, seen from behind with a knife in the pocket
 - give: Knife
 - enter_room: [library, hall]
-- teleport: [8.0, 2.5]
-- wait: 1.5
-- start_dialogue: LibrarianBack
+- sneak_behind_librarian: 60.0
+- expect_phase: Dialogue
+- wait: 1.0
 - press: Space
 - wait: 0.5
 - screenshot: 02_librarian_from_behind
@@ -43,13 +43,8 @@
 - wait: 1.5
 - screenshot: 04_dining_hall
 
-# The dark ritual room in candle light
+# Preparing the ritual
 - enter_room: [ritual_room, dining_hall]
-- teleport: [4.0, 1.5]
-- wait: 1.5
-- screenshot: 05_ritual_room_dark
-
-# The prepared ritual
 - start_dialogue: BedCut          # perfect feather
 - start_dialogue: FireSoot
 - start_dialogue: MirrorQuiet     # red herring
@@ -60,14 +55,13 @@
 - start_dialogue: PlaceIncense
 - teleport: [1.5, 2.5]
 - wait: 1.5
-- screenshot: 06_ritual_prepared
 
 # Summoning Ulu
 - skip_dialogues: false
 - start_dialogue: Summon
 - press: Space
 - wait: 0.5
-- screenshot: 07_summoning
+- screenshot: 05_summoning
 - press: Space
 - press: Space
 - press: Space
@@ -76,4 +70,4 @@
 - press: Space
 - press: Space
 - wait: 1.5
-- screenshot: 08_ending
+- screenshot: 06_ending

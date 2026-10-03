@@ -26,9 +26,7 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 | *Ulu calls in a dream* | *A knife in your pocket opens new options* |
 | ![Asking the magister for help](screenshots/03_magister.png) | ![The dining hall](screenshots/04_dining_hall.png) |
 | *Asking the magister for help* | *Exploring the cult manor* |
-| ![The dark ritual room](screenshots/05_ritual_room_dark.png) | ![The prepared ritual](screenshots/06_ritual_prepared.png) |
-| *The ritual room, lit only by your candle* | *The ritual is prepared* |
-| ![Summoning Ulu](screenshots/07_summoning.png) | ![The ending screen](screenshots/08_ending.png) |
+| ![Summoning Ulu](screenshots/05_summoning.png) | ![The ending screen](screenshots/06_ending.png) |
 | *Summoning Ulu* | *Ulu rates the ritual* |
 
 ## Fact Sheet

@@ -109,7 +109,7 @@ struct Librarian {
 /// Where the librarian is on his patrol through the library. This is kept
 /// outside of the library, so he keeps walking while the player is elsewhere.
 #[derive(Resource, Default)]
-struct LibrarianPatrol {
+pub struct LibrarianPatrol {
     /// Patrol route in world coordinates of the library.
     route: Vec<Vec2>,
     /// Position of his feet.
@@ -120,6 +120,11 @@ struct LibrarianPatrol {
 }
 
 impl LibrarianPatrol {
+    /// Where somebody stands who is `distance` behind the librarian.
+    pub fn behind(&self, distance: f32) -> Vec2 {
+        self.position - self.facing * distance
+    }
+
     fn new(route: Vec<Vec2>) -> Self {
         Self {
             position: route.first().copied().unwrap_or_default(),

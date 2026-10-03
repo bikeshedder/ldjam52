@@ -13,6 +13,7 @@
 //! - wait: 2.0                      # seconds
 //! - enter_room: [library, hall]    # room, and the room the player comes from
 //! - teleport: [6.0, 2.0]           # map cell of the player's feet
+//! - sneak_behind_librarian: 60.0  # distance behind his back in pixels
 //! - give: BurningCandle
 //! - take: BurningCandle
 //! - set: { carpet: RolledIn, circle_candle: true }
@@ -48,6 +49,7 @@ use crate::{
         iso::{FEET_OFFSET, character_translation, world_to_cell},
         progress::{Carpet, Item, Progress, RitualCircle},
         rooms::{EnterRoom, Room},
+        world::LibrarianPatrol,
         script::Node,
     },
 };
@@ -60,6 +62,7 @@ enum Step {
     Wait(f32),
     EnterRoom(String, String),
     Teleport(f32, f32),
+    SneakBehindLibrarian(f32),
     Give(Item),
     Take(Item),
     Set(ProgressChanges),
@@ -212,6 +215,7 @@ fn play_scenario(
     mut screen: Option<ResMut<ScreenFx>>,
     mut progress: ResMut<Progress>,
     room: Res<Room>,
+    patrol: Res<LibrarianPatrol>,
     mut player: Query<&mut Transform, With<Player>>,
     mut enter: MessageWriter<EnterRoom>,
     mut dialogue: MessageWriter<StartDialogue>,
@@ -266,6 +270,13 @@ fn play_scenario(
             Step::Teleport(x, y) => {
                 for mut transform in &mut player {
                     transform.translation = character_translation(Vec2::new(x, y));
+                }
+                scenario.wait_until = now + 0.3;
+            }
+            Step::SneakBehindLibrarian(distance) => {
+                let cell = world_to_cell(patrol.behind(distance));
+                for mut transform in &mut player {
+                    transform.translation = character_translation(cell);
                 }
                 scenario.wait_until = now + 0.3;
             }
