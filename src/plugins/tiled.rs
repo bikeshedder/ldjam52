@@ -237,7 +237,8 @@ fn image_name(tile: Option<tiled::Tile>) -> String {
 
 fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &TiledMap) {
     let map = &tiled_map.map;
-    let walls = wall_cells(map);
+    let walls = layer_cells(map, "Walls");
+    let floor = layer_cells(map, "Floor").map(|(_, cells)| cells);
 
     for (layer_index, layer) in map.layers().enumerate() {
         let layer_entity = commands
@@ -261,6 +262,7 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
                     &layer_data,
                     layer_index,
                     walls,
+                    floor.as_ref(),
                 );
             }
             tiled::LayerType::Objects(objects) => {
@@ -274,13 +276,13 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
     }
 }
 
-/// Index of the layer called `Walls` and the cells covered by it.
-fn wall_cells(map: &tiled::Map) -> Option<(usize, HashSet<IVec2>)> {
+/// Index of the layer with the given name and the cells covered by it.
+fn layer_cells(map: &tiled::Map, name: &str) -> Option<(usize, HashSet<IVec2>)> {
     map.layers().enumerate().find_map(|(index, layer)| {
         let tiled::LayerType::Tiles(tiled::TileLayer::Finite(data)) = layer.layer_type() else {
             return None;
         };
-        (layer.name == "Walls").then(|| {
+        (layer.name == name).then(|| {
             let cells = (0..map.height as i32)
                 .flat_map(|y| (0..map.width as i32).map(move |x| IVec2::new(x, y)))
                 .filter(|cell| data.get_tile(cell.x, cell.y).is_some())
@@ -292,7 +294,8 @@ fn wall_cells(map: &tiled::Map) -> Option<(usize, HashSet<IVec2>)> {
 
 /// Spawns the tiles of a tile layer. `walls` are the wall cells if the layer is
 /// above the walls layer: Tiles mounted on walls (e.g. windows) are drawn in
-/// front of the whole wall like Tiled draws them.
+/// front of the whole wall like Tiled draws them. `floor` are the cells of the
+/// room: Tiles outside of it stand at the front edge of the room (e.g. doors).
 #[allow(clippy::too_many_arguments)]
 fn spawn_tile_layer(
     commands: &mut Commands,
@@ -302,6 +305,7 @@ fn spawn_tile_layer(
     layer_data: &tiled::FiniteTileLayer,
     layer_index: usize,
     walls: Option<&HashSet<IVec2>>,
+    floor: Option<&HashSet<IVec2>>,
 ) {
     let map = &tiled_map.map;
     for x in 0..map.width {
@@ -313,12 +317,17 @@ fn spawn_tile_layer(
             let tileset = layer_tile.get_tileset();
             let is_flat =
                 matches!(layer.name.as_str(), "Floor" | "Carpet") || is_flat_image(&image);
-            let on_wall =
-                walls.is_some_and(|walls| walls.contains(&IVec2::new(x as i32, y as i32)));
+            let cell = IVec2::new(x as i32, y as i32);
+            let on_wall = walls.is_some_and(|walls| walls.contains(&cell));
+            let outside = floor.is_some_and(|floor| !floor.contains(&cell));
             let z = if is_flat {
                 flat_depth(layer_index)
             } else if on_wall {
                 upright_depth((x + y + 1) as f32, layer_index as f32 * 0.1)
+            } else if outside {
+                // A flat object (e.g. a door) along the front edge of the room. It
+                // covers everything behind it, also next to its own cell.
+                upright_depth((x + y) as f32 + 1.5, layer_index as f32 * 0.1)
             } else if is_wall_hanging_image(&image) {
                 // In front of the wall, behind furniture standing against it.
                 upright_depth((x + y) as f32 - 1.0, layer_index as f32 * 0.1 - 0.05)
