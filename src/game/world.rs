@@ -180,7 +180,7 @@ impl Plugin for WorldPlugin {
                 OnEnter(AppState::Game),
                 (setup_world, enter_start_room).chain(),
             )
-            .add_systems(OnExit(Phase::Exploring), clear_prompt)
+            .add_systems(OnExit(Phase::Exploring), (clear_prompt, stop_librarian))
             .add_systems(
                 Update,
                 (
@@ -634,6 +634,21 @@ fn librarian_patrol(
     }
     let z = transform.translation.z;
     transform.translation = (patrol.position - FEET_OFFSET * transform.scale.y).extend(z);
+}
+
+/// The librarian doesn't move while the player isn't exploring (e.g. during
+/// dialogues or while changing rooms), so he stops his walking animation.
+fn stop_librarian(
+    patrol: Res<LibrarianPatrol>,
+    mut librarian: Query<&mut AnimationState, With<Librarian>>,
+) {
+    for mut animation in &mut librarian {
+        animation.start(if patrol.facing.y > 0.0 {
+            "idle_up"
+        } else {
+            "idle_down"
+        });
+    }
 }
 
 /// Characters look at the player while talking.
