@@ -166,6 +166,21 @@ def medal(unlocked):
     return img
 
 
+def star(filled):
+    """Star for the rating of the ritual."""
+    img, d = canvas()
+    points = []
+    for i in range(10):
+        angle = -math.pi / 2 + i * math.pi / 5
+        radius = 29 if i % 2 == 0 else 12
+        points.append((32 + radius * math.cos(angle), 34 + radius * math.sin(angle)))
+    if filled:
+        d.polygon(p(*points), fill=(245, 195, 60), outline=OUTLINE, width=W)
+    else:
+        d.polygon(p(*points), fill=(60, 55, 58), outline=(110, 100, 95, 255), width=W)
+    return img
+
+
 ICONS = {
     "knife": knife(),
     "candle": candle(False),
@@ -180,6 +195,8 @@ ICONS = {
     "red_herring": herring(),
     "achievement": medal(True),
     "achievement_locked": medal(False),
+    "star": star(True),
+    "star_empty": star(False),
 }
 
 if __name__ == "__main__":
