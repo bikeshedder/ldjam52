@@ -1,0 +1,30 @@
+# The rating of the ritual on the ending screen. The ritual is prepared through
+# the real dialogue nodes, so the reasons are recorded like in a real game.
+- start_game
+- skip_dialogues: true
+- wait: 1.0
+- start_dialogue: LibA            # candle from the librarian
+- start_dialogue: ChestKnife
+- start_dialogue: BedCut          # perfect feather
+- start_dialogue: FireIgnite
+- start_dialogue: FireSoot
+- start_dialogue: TableTakeCheese
+- start_dialogue: MirrorQuiet     # red herring
+- start_dialogue: CarpetRollIn
+- start_dialogue: FloorHerring
+- start_dialogue: PlaceFeather
+- start_dialogue: PlaceCandle
+- start_dialogue: PlaceIncense
+- skip_dialogues: false
+- start_dialogue: Summon
+# Two presses per line: reveal the whole text, then continue.
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- wait: 1.0
+- screenshot: ending_rating

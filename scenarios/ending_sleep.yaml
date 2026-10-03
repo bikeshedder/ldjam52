@@ -1,0 +1,12 @@
+# Going to sleep ends the game without performing the ritual.
+- start_game
+- skip_dialogues: true
+- wait: 1.0
+- skip_dialogues: false
+- start_dialogue: BedSleep
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- wait: 1.0
+- screenshot: ending_sleep
