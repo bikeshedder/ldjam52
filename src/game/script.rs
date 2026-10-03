@@ -477,6 +477,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 s.choice("There is nothing of use in here.", Node::Exit)
             } else {
                 s.choice("There is a sharp knife, I will take it.", Node::ChestKnife)
+                    .choice("I'd rather leave the knife where it is.", Node::Exit)
             }
         }
         Node::ChestKnife => {
