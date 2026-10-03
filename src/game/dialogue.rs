@@ -6,7 +6,7 @@ use super::{
     Phase,
     audio::{PlaySfx, Sfx},
     hud::ScreenFx,
-    input::MenuInput,
+    input::{Action, InputDevice, MenuInput},
     progress::{Meta, Progress},
     script::{self, Ctx, Effect, Line, Next, Scene, Speaker},
 };
@@ -445,27 +445,28 @@ fn update_text(
 
 #[allow(clippy::type_complexity)]
 fn update_hint(
+    device: Res<InputDevice>,
     dialogue: Res<Dialogue>,
     hint: Single<
         (&mut Text, &mut TextColor),
         (With<Hint>, Without<BodyText>, Without<SpeakerText>),
     >,
 ) {
-    if !dialogue.is_changed() {
+    if !dialogue.is_changed() && !device.is_changed() {
         return;
     }
     let (mut text, mut color) = hint.into_inner();
     let hint = if !dialogue.fully_revealed() {
-        ""
+        String::new()
     } else if dialogue.choices().is_empty() {
-        "[Space] continue"
+        format!("{} continue", device.label(Action::Confirm))
     } else if dialogue.selected.is_some() {
-        "[Space] confirm"
+        format!("{} confirm", device.label(Action::Confirm))
     } else {
-        "[Up/Down] choose an answer"
+        format!("{} choose an answer", device.label(Action::Choose))
     };
     if text.0 != hint {
-        text.0 = hint.to_string();
+        text.0 = hint;
     }
     color.0 = if dialogue.needs_selection && dialogue.selected.is_none() {
         Color::srgb(1.0, 0.75, 0.4)

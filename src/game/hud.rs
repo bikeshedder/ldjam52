@@ -6,7 +6,7 @@ use super::{
     Phase,
     audio::{PlaySfx, Sfx},
     dialogue::Dialogue,
-    input::MenuInput,
+    input::{Action, InputDevice, MenuInput},
     progress::Progress,
     script::Speaker,
 };
@@ -245,6 +245,7 @@ fn update_eyes(
 }
 
 fn update_action_bar(
+    device: Res<InputDevice>,
     progress: Res<Progress>,
     prompt: Res<Prompt>,
     phase: Res<State<Phase>>,
@@ -252,7 +253,7 @@ fn update_action_bar(
     mut inventory_text: Single<&mut Text, (With<InventoryText>, Without<PromptText>)>,
 ) {
     let prompt = match (&prompt.0, phase.get()) {
-        (Some(prompt), Phase::Exploring) => format!("[Space] {prompt}"),
+        (Some(prompt), Phase::Exploring) => format!("{} {prompt}", device.label(Action::Confirm)),
         _ => String::new(),
     };
     if prompt_text.0 != prompt {

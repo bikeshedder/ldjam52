@@ -4,6 +4,7 @@ use crate::{
     AppState,
     game::{
         audio::{PlaySfx, Sfx},
+        input::{Action, DeviceText, InputDevice},
         progress::{Achievement, CAT_COUNT, Meta},
     },
 };
@@ -168,9 +169,18 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
                     },
                 ),
                 (
-                    Text::new(
-                        "Move: WASD / arrow keys / left stick    Action: Space / A    Meditate: Escape / Start"
-                    ),
+                    Text::default(),
+                    DeviceText(|device| {
+                        let movement = match device {
+                            InputDevice::Keyboard => "WASD / arrow keys",
+                            InputDevice::Gamepad => "left stick / D-Pad",
+                        };
+                        format!(
+                            "Move: {movement}    Action: {}    Meditate: {}",
+                            device.label(Action::Confirm),
+                            device.label(Action::Pause)
+                        )
+                    }),
                     TextFont {
                         font: font.clone().into(),
                         font_size: 16.0.into(),

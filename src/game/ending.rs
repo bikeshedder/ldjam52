@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use super::{
     audio::{PlaySfx, Sfx},
-    input::MenuInput,
+    input::{Action, DeviceText, MenuInput},
     progress::{Achievement, CAT_COUNT, Meta, Progress},
 };
 use crate::AppState;
@@ -95,7 +95,12 @@ fn spawn_ending_screen(
                 22.0,
                 gray,
             ));
-            parent.spawn(text("[Space] Return to the main menu".into(), 18.0, gray));
+            parent.spawn((
+                text(String::new(), 18.0, gray),
+                DeviceText(|device| {
+                    format!("{} Return to the main menu", device.label(Action::Confirm))
+                }),
+            ));
         });
 }
 

@@ -34,3 +34,76 @@ impl MenuInput<'_, '_> {
         actions
     }
 }
+
+/// The input device the player used last. Input hints are shown for it.
+#[derive(Resource, Default, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InputDevice {
+    #[default]
+    Keyboard,
+    Gamepad,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Action {
+    Confirm,
+    Choose,
+    Pause,
+}
+
+impl InputDevice {
+    /// Label of the button for the given action.
+    pub fn label(self, action: Action) -> &'static str {
+        match (self, action) {
+            (Self::Keyboard, Action::Confirm) => "[Space]",
+            (Self::Keyboard, Action::Choose) => "[Up/Down]",
+            (Self::Keyboard, Action::Pause) => "[Esc]",
+            (Self::Gamepad, Action::Confirm) => "(A)",
+            (Self::Gamepad, Action::Choose) => "(D-Pad)",
+            (Self::Gamepad, Action::Pause) => "(Start)",
+        }
+    }
+}
+
+/// A text which depends on the [`InputDevice`]. It is updated whenever the
+/// player switches between keyboard and gamepad.
+#[derive(Component)]
+pub struct DeviceText(pub fn(InputDevice) -> String);
+
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<InputDevice>()
+            .add_systems(
+                PreUpdate,
+                detect_input_device.after(bevy::input::InputSystems),
+            )
+            .add_systems(Update, update_device_texts);
+    }
+}
+
+fn detect_input_device(
+    keys: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    gamepads: Query<&Gamepad>,
+    mut device: ResMut<InputDevice>,
+) {
+    let gamepad_used = gamepads.iter().any(|gamepad| {
+        gamepad.get_just_pressed().next().is_some() || gamepad.left_stick().length() > 0.5
+    });
+    let keyboard_used =
+        keys.get_just_pressed().next().is_some() || mouse.get_just_pressed().next().is_some();
+    if gamepad_used {
+        device.set_if_neq(InputDevice::Gamepad);
+    } else if keyboard_used {
+        device.set_if_neq(InputDevice::Keyboard);
+    }
+}
+
+fn update_device_texts(device: Res<InputDevice>, mut texts: Query<(Ref<DeviceText>, &mut Text)>) {
+    for (device_text, mut text) in &mut texts {
+        if device.is_changed() || device_text.is_added() {
+            text.0 = (device_text.0)(*device);
+        }
+    }
+}

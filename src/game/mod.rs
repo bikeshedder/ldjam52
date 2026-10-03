@@ -43,6 +43,7 @@ impl Plugin for GamePlugin {
                 dialogue::DialoguePlugin,
                 ending::EndingPlugin,
                 hud::HudPlugin,
+                input::InputPlugin,
                 rooms::RoomsPlugin,
                 world::WorldPlugin,
             ))
