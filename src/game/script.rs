@@ -17,15 +17,55 @@ pub const LIBRARIAN: &str = "Edam";
 /// Name of the magister ("NPC M" in the concept).
 pub const MAGISTER: &str = "Roquefort";
 
-/// Messages shown when trying to open the locked doors of the other servants of Ulu.
-const LOCKED_DOOR: [&str; 6] = [
-    "The door is locked. Another servant of Ulu lives here, probably preparing for the Great Harvest as well.",
-    "Locked. You can hear muffled chanting from the other side.",
-    "The door doesn't move. Somebody behind it is snoring loudly.",
-    "Locked. A faint smell of old cheese seeps through the keyhole.",
-    "The handle doesn't budge. Somewhere behind the door, a quill is scratching over parchment.",
-    "Locked. A small sign on the door reads: \"Do not disturb - meditating\".",
-];
+/// The servants of Ulu living behind the locked doors in the hall.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Occupant {
+    /// Sound asleep. He will miss the Great Harvest.
+    Sleeper,
+    /// Awake, meditating and chanting.
+    Chanter,
+    /// Awake, copying the holy book of Ulu with a late snack.
+    Scribe,
+    /// A locked door without a known occupant.
+    Unknown,
+}
+
+impl Occupant {
+    /// The occupant of the door with the given name in the room map.
+    pub fn from_name(name: &str) -> Self {
+        match name {
+            "sleeper" => Self::Sleeper,
+            "chanter" => Self::Chanter,
+            "scribe" => Self::Scribe,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Messages shown when trying to open the door, one after another.
+    fn messages(self) -> &'static [&'static str] {
+        match self {
+            Self::Sleeper => &[
+                "The door is locked. Somebody behind it is snoring loudly.",
+                "Still locked. The snoring hasn't stopped for a moment.",
+                "Locked. The snoring pauses... and continues even louder.",
+                "Locked. Whoever sleeps in there will sleep right through the Great Harvest.",
+            ],
+            Self::Chanter => &[
+                "The door is locked. You can hear muffled chanting from the other side.",
+                "Locked. A small sign on the door reads: \"Do not disturb - meditating\".",
+                "Locked. The chanting goes on: \"Ulu... Ulu... Ulu...\"",
+                "Locked. The chanting stops. You hold your breath. Then it starts again.",
+            ],
+            Self::Scribe => &[
+                "The door is locked. Somewhere behind it, a quill is scratching over parchment.",
+                "Locked. A faint smell of old cheese seeps through the keyhole. Somebody is having a late snack.",
+                "Locked. You hear somebody muttering verses of the holy book of Ulu while writing.",
+                "Locked. The scratching stops. \"Not now, I'm almost done with this chapter!\" a voice calls from inside.",
+            ],
+            Self::Unknown => &["The door is locked."],
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Speaker {
@@ -196,7 +236,7 @@ pub enum Node {
 
     Intro,
     Diary,
-    LockedDoor,
+    LockedDoor(Occupant),
 
     // Bed
     Bed,
@@ -303,10 +343,12 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 .n("You wake up with a start. Two glowing eyes are still burning in your mind.")
         }
 
-        Node::LockedDoor => {
+        Node::LockedDoor(occupant) => {
             // A different message every time.
-            let message = LOCKED_DOOR[cx.p.locked_door_attempts % LOCKED_DOOR.len()];
-            cx.p.locked_door_attempts += 1;
+            let attempts = &mut cx.p.locked_door_attempts[occupant as usize];
+            let messages = occupant.messages();
+            let message = messages[*attempts % messages.len()];
+            *attempts += 1;
             s.n(message)
         }
 
@@ -1209,17 +1251,27 @@ mod tests {
     }
 
     #[test]
-    fn locked_doors_show_varying_messages() {
+    fn locked_doors_show_their_own_varying_messages() {
         let mut sim = Sim::new(Meta::default());
-        let mut messages = Vec::new();
-        for _ in 0..LOCKED_DOOR.len() + 1 {
+        let mut message = |occupant| {
             let mut cx = Ctx::new(&mut sim.p, &mut sim.meta);
-            let scene = run(Node::LockedDoor, &mut cx);
+            let scene = run(Node::LockedDoor(occupant), &mut cx);
             assert_eq!(scene.lines.len(), 1);
-            messages.push(scene.lines[0].text.clone());
+            scene.lines[0].text.clone()
+        };
+        for occupant in [Occupant::Sleeper, Occupant::Chanter, Occupant::Scribe] {
+            let messages = occupant.messages();
+            // Trying another door in between doesn't skip any message.
+            let shown: Vec<_> = (0..messages.len() + 1)
+                .map(|_| {
+                    message(Occupant::Unknown);
+                    message(occupant)
+                })
+                .collect();
+            assert!(shown.windows(2).all(|pair| pair[0] != pair[1]));
+            assert_eq!(shown[..messages.len()], *messages);
+            assert_eq!(shown[0], shown[messages.len()]);
         }
-        assert!(messages.windows(2).all(|pair| pair[0] != pair[1]));
-        assert_eq!(messages[0], messages[LOCKED_DOOR.len()]);
     }
 
     #[test]

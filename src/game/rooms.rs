@@ -5,7 +5,7 @@
 //!
 //! * `door` (rectangle): Opening it from within the rectangle's area leads to the
 //!   room named like the object. Doors with the `locked` property set to `true`
-//!   can't be opened.
+//!   can't be opened, their name says who lives behind them.
 //! * `spawn` (point): Where the player appears when coming from the room named
 //!   like the object. `start` is used when starting a new game.
 //! * `interactable` (point or rectangle): Something the player can interact
@@ -91,6 +91,7 @@ impl Area {
 
 #[derive(Clone, Debug)]
 pub struct Door {
+    pub name: String,
     /// The room behind the door. `None` if the door is locked.
     pub target: Option<String>,
     pub area: Area,
@@ -170,6 +171,7 @@ impl Room {
                         Some(tiled::PropertyValue::BoolValue(true))
                     );
                     room.doors.push(Door {
+                        name: object.name.clone(),
                         target: (!locked).then(|| object.name.clone()),
                         area,
                     });

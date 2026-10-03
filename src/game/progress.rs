@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 
 const SAVE_FILE: &str = "savegame.yaml";
 
+/// Number of [`Occupant`](super::script::Occupant)s behind the locked doors.
+pub const OCCUPANT_COUNT: usize = 4;
+
 /// Number of cats of Ulu which can be collected.
 pub const CAT_COUNT: usize = 8;
 
@@ -168,8 +171,8 @@ pub struct Progress {
     /// The librarian hinted that sleeping might be a good idea.
     pub meta_knowledge: bool,
     pub tried_to_cut: bool,
-    /// How often the player tried to open a locked door.
-    pub locked_door_attempts: usize,
+    /// How often the player tried to open the locked door of each occupant.
+    pub locked_door_attempts: [usize; OCCUPANT_COUNT],
     pub cheese_taken: bool,
     pub wine_received: bool,
     pub mirror_done: bool,
@@ -204,7 +207,7 @@ impl Default for Progress {
             knows_magister: false,
             meta_knowledge: false,
             tried_to_cut: false,
-            locked_door_attempts: 0,
+            locked_door_attempts: [0; OCCUPANT_COUNT],
             cheese_taken: false,
             wine_received: false,
             mirror_done: false,

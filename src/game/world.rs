@@ -14,7 +14,7 @@ use super::{
         Area, EnterRoom, Room, RoomEntity, RoomMaps, RoomSpawned, RoomSpawner, START_ROOM,
         START_SPAWN,
     },
-    script::Node,
+    script::{Node, Occupant},
 };
 use crate::{
     AppState,
@@ -530,15 +530,18 @@ fn interact(
     if let Target::Door(index) = interactable.target {
         prompt.0 = Some("Open the door".to_string());
         if player.input.interact {
-            match room.doors.get(index).and_then(|door| door.target.clone()) {
-                Some(target) => {
-                    enter.write(EnterRoom {
-                        room: target,
-                        spawn: room.name.clone(),
-                    });
-                }
-                None => {
-                    dialogue.write(StartDialogue(Node::LockedDoor));
+            if let Some(door) = room.doors.get(index) {
+                match &door.target {
+                    Some(target) => {
+                        enter.write(EnterRoom {
+                            room: target.clone(),
+                            spawn: room.name.clone(),
+                        });
+                    }
+                    None => {
+                        let occupant = Occupant::from_name(&door.name);
+                        dialogue.write(StartDialogue(Node::LockedDoor(occupant)));
+                    }
                 }
             }
         }
