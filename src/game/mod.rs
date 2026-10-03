@@ -7,6 +7,7 @@ pub mod ending;
 pub mod hud;
 pub mod input;
 pub mod iso;
+pub mod light;
 pub mod outline;
 pub mod progress;
 pub mod rooms;
@@ -45,6 +46,7 @@ impl Plugin for GamePlugin {
                 ending::EndingPlugin,
                 hud::HudPlugin,
                 input::InputPlugin,
+                light::LightPlugin,
                 outline::OutlinePlugin,
                 rooms::RoomsPlugin,
                 world::WorldPlugin,

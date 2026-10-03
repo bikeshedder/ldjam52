@@ -202,7 +202,6 @@ pub struct Progress {
 
     pub fire_lit: bool,
     pub bed_destroyed: bool,
-    pub room_lit: bool,
     pub carpet: Carpet,
     pub circle: RitualCircle,
     pub circle_feather: Option<Item>,
@@ -235,7 +234,6 @@ impl Default for Progress {
             magister_talked: false,
             fire_lit: true,
             bed_destroyed: false,
-            room_lit: false,
             carpet: Carpet::Clean,
             circle: RitualCircle::None,
             circle_feather: None,
@@ -271,6 +269,12 @@ impl Progress {
             Some(slot) => *slot = new,
             None => self.give(new),
         }
+    }
+
+    /// Whether there is light in the dark ritual room: The player carries the
+    /// burning candle or placed it on the invocation circle.
+    pub fn has_light(&self) -> bool {
+        self.has(Item::BurningCandle) || self.circle_candle
     }
 
     /// Whether the player ever had (or still has) a candle.

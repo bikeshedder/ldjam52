@@ -5,9 +5,11 @@ use bevy::prelude::*;
 
 use super::{
     Phase,
+    audio::{PlaySfx, Sfx},
     dialogue::StartDialogue,
-    hud::{Darkness, Prompt},
+    hud::Prompt,
     iso::{FEET_OFFSET, cell_center, character_translation, depth_at},
+    light::RoomLight,
     outline::Highlighted,
     progress::{Carpet, Item, Progress, RitualCircle},
     rooms::{
@@ -196,7 +198,7 @@ impl Plugin for WorldPlugin {
                     (
                         apply_tint,
                         update_depth,
-                        update_darkness,
+                        update_light,
                         update_world_visuals,
                         face_player,
                         update_highlight,
@@ -495,7 +497,7 @@ fn interact(
     let nearest = interactables
         .iter_mut()
         .filter(|(_, interactable, ..)| match interactable.target {
-            Target::Ritual => progress.room_lit,
+            Target::Ritual => progress.has_light(),
             Target::Librarian => !progress.librarian_gone,
             _ => true,
         })
@@ -718,8 +720,9 @@ fn dark_room(
     progress: Res<Progress>,
     mut tracker: ResMut<RoomTracker>,
     mut dialogue: MessageWriter<StartDialogue>,
+    mut sfx: MessageWriter<PlaySfx>,
 ) {
-    let dark = room.dark && !progress.room_lit;
+    let dark = room.dark && !progress.has_light();
     let on_carpet = room
         .trip
         .is_some_and(|trip| trip.contains_world(feet(&player)));
@@ -727,23 +730,42 @@ fn dark_room(
         tracker.room = room.name.clone();
         if dark {
             dialogue.write(StartDialogue(Node::DarkRoom));
+        } else if room.dark {
+            // The candle lights the way.
+            sfx.write(PlaySfx(Sfx::RoomIsNowBright));
         }
-    } else if on_carpet
-        && !tracker.on_carpet
-        && dark
-        && !progress.has(Item::BurningCandle)
-        && progress.carpet != Carpet::RolledIn
-    {
+    } else if on_carpet && !tracker.on_carpet && dark && progress.carpet != Carpet::RolledIn {
         dialogue.write(StartDialogue(Node::Trip));
     }
     tracker.on_carpet = on_carpet;
 }
 
-fn update_darkness(room: Res<Room>, progress: Res<Progress>, mut darkness: ResMut<Darkness>) {
-    let dark = room.dark && !progress.room_lit;
-    if darkness.0 != dark {
-        darkness.0 = dark;
-    }
+/// Radius of the light of the candle carried by the player.
+const CANDLE_LIGHT: f32 = 260.0;
+/// Radius of the light of the candle placed on the invocation circle.
+const PLACED_CANDLE_LIGHT: f32 = 420.0;
+
+/// The light comes from the candle: around the player while carrying it, from
+/// the invocation circle once it is placed there.
+fn update_light(
+    room: Res<Room>,
+    progress: Res<Progress>,
+    player: Single<&Transform, With<Player>>,
+    mut light: ResMut<RoomLight>,
+) {
+    let ritual = room
+        .interactable("ritual")
+        .map(|ritual| cell_center(ritual.path[0]));
+    let (center, radius) = match ritual {
+        Some(center) if progress.circle_candle => (center, PLACED_CANDLE_LIGHT),
+        _ if progress.has(Item::BurningCandle) => (feet(&player), CANDLE_LIGHT),
+        _ => (feet(&player), 0.0),
+    };
+    light.set_if_neq(RoomLight {
+        dark: room.dark,
+        center,
+        radius,
+    });
 }
 
 fn spawn_markers(

@@ -44,18 +44,12 @@ impl ScreenFx {
     }
 }
 
-/// Whether the player is in a room without light.
-#[derive(Resource, Default)]
-pub struct Darkness(pub bool);
-
 /// Text of the interaction available to the player.
 #[derive(Resource, Default)]
 pub struct Prompt(pub Option<String>);
 
 #[derive(Component)]
 struct FadeOverlay;
-#[derive(Component)]
-struct DarknessOverlay;
 #[derive(Component)]
 struct UluEyes;
 #[derive(Component)]
@@ -78,15 +72,13 @@ pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Darkness>()
-            .init_resource::<Prompt>()
+        app.init_resource::<Prompt>()
             .init_resource::<PauseSelection>()
             .add_systems(OnEnter(AppState::Game), (reset_hud, spawn_hud))
             .add_systems(
                 Update,
                 (
                     update_fade,
-                    update_darkness,
                     update_eyes,
                     update_action_bar,
                     update_inventory,
@@ -101,7 +93,6 @@ impl Plugin for HudPlugin {
 
 fn reset_hud(mut commands: Commands) {
     commands.insert_resource(ScreenFx::default());
-    commands.insert_resource(Darkness::default());
     commands.insert_resource(Prompt::default());
 }
 
@@ -116,13 +107,6 @@ fn full_screen() -> Node {
 
 fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    commands.spawn((
-        full_screen(),
-        BackgroundColor(Color::NONE),
-        GlobalZIndex(10),
-        DarknessOverlay,
-        DespawnOnExit(AppState::Game),
-    ));
     commands.spawn((
         full_screen(),
         BackgroundColor(Color::BLACK),
@@ -211,17 +195,6 @@ fn update_fade(
     overlay.0 = Color::BLACK.with_alpha(alpha.max(pulse));
 }
 
-fn update_darkness(
-    time: Res<Time>,
-    darkness: Res<Darkness>,
-    mut overlay: Single<&mut BackgroundColor, With<DarknessOverlay>>,
-) {
-    let current = overlay.0.alpha();
-    let target = if darkness.0 { 0.93 } else { 0.0 };
-    let dt = time.delta_secs() * 2.0;
-    overlay.0 = Color::BLACK.with_alpha(current + (target - current).clamp(-dt, dt));
-}
-
 fn update_eyes(
     time: Res<Time>,
     dialogue: Res<Dialogue>,
@@ -246,7 +219,6 @@ fn update_eyes(
 
 fn update_action_bar(
     device: Res<InputDevice>,
-    progress: Res<Progress>,
     prompt: Res<Prompt>,
     phase: Res<State<Phase>>,
     mut prompt_text: Single<&mut Text, With<PromptText>>,

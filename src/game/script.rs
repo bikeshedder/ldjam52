@@ -312,7 +312,6 @@ pub enum Node {
 
     // Dark ritual room
     DarkRoom,
-    DarkRoomLight,
     DarkRoomLeave,
     Trip,
 
@@ -791,21 +790,13 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
         // Dark ritual room
         Node::DarkRoom => {
             cx.sfx(Sfx::EnterDarkRoom);
-            let candle = cx.has(Item::BurningCandle);
             s.c("It's very dark here. I should be careful.")
                 .choice("I am not afraid of the dark. Ulu will guide me.", Node::Exit)
-                .choice_if(candle, "I should better make some light.", Node::DarkRoomLight)
                 .choice("I'd better leave this room.", Node::DarkRoomLeave)
         }
         Node::DarkRoomLeave => {
             cx.effects.push(Effect::LeaveRoom);
             s.n("You turn around and feel your way back to the door.")
-        }
-        Node::DarkRoomLight => {
-            cx.sfx(Sfx::RoomIsNowBright);
-            cx.fade();
-            cx.p.room_lit = true;
-            s.n("You raise your burning candle and light the candles on the walls. The room is bathed in a warm, flickering light.")
         }
         Node::Trip => {
             cx.sfx(Sfx::EnterDarkRoomAua);
@@ -1149,9 +1140,7 @@ mod tests {
         }
 
         fn do_ritual(&mut self) -> &mut Self {
-            self.enter(Node::DarkRoom)
-                .choose("I should better make some light");
-            assert!(self.p.room_lit);
+            assert!(self.p.has_light());
             self.enter(Node::Ritual).choose("I will roll it in");
             self.enter(Node::Ritual)
                 .choose("Let's draw the invocation circle");
@@ -1228,8 +1217,7 @@ mod tests {
         assert!(sim.p.has(Item::MeltedCheese));
         sim.enter(Node::Fireplace).choose("Extinguish the fire");
         sim.enter(Node::Fireplace).choose("Soil the feather");
-        sim.enter(Node::DarkRoom)
-            .choose("I should better make some light");
+        assert!(sim.p.has_light());
         sim.enter(Node::Ritual).choose("I will roll it in");
         sim.enter(Node::Ritual)
             .choose("Let's draw the invocation circle");
