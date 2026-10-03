@@ -10,7 +10,12 @@ use bevy::{
 use crate::{
     AppState,
     data::entity_types::{EntityImage, EntityTypes, Loaded, LoadedAnimations},
+    plugins::tiled::TiledMap,
 };
+
+/// The game's map. Loaded together with the textures.
+#[derive(Resource)]
+pub struct MapAsset(pub Handle<TiledMap>);
 
 /// Handles of all entity type images which need to be loaded before leaving
 /// the [`AppState::Loading`] state, keyed by asset path.
@@ -24,10 +29,12 @@ fn image_path(entity_name: &str, image: &str) -> String {
 }
 
 pub fn load_textures(
+    mut commands: Commands,
     mut entity_types: ResMut<EntityTypes>,
     mut image_handles: ResMut<ImageHandles>,
     asset_server: Res<AssetServer>,
 ) {
+    commands.insert_resource(MapAsset(asset_server.load("map.tmx")));
     for (name, entity_type) in entity_types.types.iter_mut() {
         match &entity_type.image {
             EntityImage::Static(image) => {
@@ -48,9 +55,11 @@ pub fn load_textures(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn check_textures(
     mut next_state: ResMut<NextState<AppState>>,
     image_handles: Res<ImageHandles>,
+    map: Res<MapAsset>,
     asset_server: Res<AssetServer>,
     mut entity_types: ResMut<EntityTypes>,
     mut images: ResMut<Assets<Image>>,
@@ -61,10 +70,14 @@ pub fn check_textures(
             return Err(anyhow::anyhow!("Loading image {path:?} failed").into());
         }
     }
-    if !image_handles
-        .handles
-        .values()
-        .all(|handle| asset_server.is_loaded_with_dependencies(handle))
+    if asset_server.load_state(&map.0).is_failed() {
+        return Err(anyhow::anyhow!("Loading the map failed").into());
+    }
+    if !asset_server.is_loaded_with_dependencies(&map.0)
+        || !image_handles
+            .handles
+            .values()
+            .all(|handle| asset_server.is_loaded_with_dependencies(handle))
     {
         return Ok(());
     }

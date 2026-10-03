@@ -1,6 +1,5 @@
 use bevy::{
     input::{ButtonInput, gamepad::Gamepad},
-    math::Vec3,
     prelude::{Component, GamepadButton, KeyCode},
 };
 
@@ -36,7 +35,7 @@ impl PlayerInput {
         Self {
             x: key_right + key_left,
             y: key_up + key_down,
-            interact: key.pressed(KeyCode::Space),
+            interact: key.any_just_pressed([KeyCode::Space, KeyCode::Enter]),
             back: key.just_pressed(KeyCode::Escape),
         }
     }
@@ -46,7 +45,7 @@ impl PlayerInput {
         Self {
             x: (deadzone(stick.x) + dpad.x).clamp(-1.0, 1.0),
             y: (deadzone(stick.y) + dpad.y).clamp(-1.0, 1.0),
-            interact: gamepad.pressed(GamepadButton::South),
+            interact: gamepad.just_pressed(GamepadButton::South),
             back: gamepad.just_pressed(GamepadButton::East),
         }
     }
@@ -76,7 +75,6 @@ pub struct Player {
     pub input: PlayerInput,
     pub state: PlayerState,
     pub direction: PlayerDirection,
-    pub center: Vec3,
 }
 
 impl Player {
@@ -99,7 +97,6 @@ impl Default for Player {
             input: PlayerInput::default(),
             state: PlayerState::Idle,
             direction: PlayerDirection::SE,
-            center: Vec3::new(0.0, -40.0, 0.0),
         }
     }
 }

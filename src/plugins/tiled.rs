@@ -47,6 +47,24 @@ pub struct TiledTileset {
 #[require(Transform, Visibility)]
 pub struct TiledMapHandle(pub Handle<TiledMap>);
 
+/// A single tile spawned from a map layer.
+#[derive(Component, Debug, Clone)]
+pub struct MapTile {
+    pub layer: String,
+    pub cell: IVec2,
+}
+
+/// Depth for flat tiles (floors, carpets, ...) which are always drawn below upright ones.
+pub fn flat_depth(layer_index: usize) -> f32 {
+    layer_index as f32 * 0.1
+}
+
+/// Depth for upright sprites. `cell_sum` is the sum of the (fractional) map cell
+/// coordinates, `bias` orders sprites standing in the same cell.
+pub fn upright_depth(cell_sum: f32, bias: f32) -> f32 {
+    10.0 + cell_sum * 10.0 + bias
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum TiledLoaderError {
     #[error("Could not read TMX map: {0}")]
@@ -206,6 +224,16 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
                 let tiled_tileset = &tiled_map.tilesets[layer_tile.tileset_index()];
                 let image_handle = tiled_tileset.images[&layer_tile.id()].clone();
                 let tileset = layer_tile.get_tileset();
+                let is_flat = matches!(layer.name.as_str(), "Floor" | "Carpet")
+                    || layer_tile
+                        .get_tile()
+                        .and_then(|tile| tile.image.as_ref().map(|i| i.source.clone()))
+                        .is_some_and(|source| source.to_string_lossy().contains("Glow_Floor"));
+                let z = if is_flat {
+                    flat_depth(layer_index)
+                } else {
+                    upright_depth((x + y) as f32, layer_index as f32 * 0.1)
+                };
                 commands.spawn((
                     Sprite {
                         image: image_handle,
@@ -215,7 +243,11 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
                         ..default()
                     },
                     Anchor::BOTTOM_LEFT,
-                    iso_to_screen(map, x, y, layer_index, tileset.offset_x, tileset.offset_y),
+                    iso_to_screen(map, x, y, z, tileset.offset_x, tileset.offset_y),
+                    MapTile {
+                        layer: layer.name.clone(),
+                        cell: IVec2::new(x as i32, y as i32),
+                    },
                     ChildOf(layer_entity),
                 ));
             }
@@ -227,13 +259,12 @@ fn iso_to_screen(
     map: &tiled::Map,
     x: u32,
     y: u32,
-    layer_index: usize,
+    z: f32,
     offset_x: i32,
     offset_y: i32,
 ) -> Transform {
     let x = x as f32;
     let y = y as f32;
-    let z = layer_index as f32;
     let tile_width = map.tile_width as f32;
     let tile_height = map.tile_height as f32;
     let offset_x = offset_x as f32;
@@ -241,6 +272,6 @@ fn iso_to_screen(
     Transform::from_xyz(
         ((x - y) * tile_width) / 2.0 + offset_x,
         -(((x + y) * tile_height) / 2.0 + offset_y),
-        (x + y) + z * 10.0 + 64.0,
+        z,
     )
 }

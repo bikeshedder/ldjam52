@@ -1,6 +1,12 @@
 use bevy::{app::AppExit, prelude::*};
 
-use crate::AppState;
+use crate::{
+    AppState,
+    game::{
+        audio::{PlaySfx, Sfx},
+        progress::{Achievement, CAT_COUNT, Meta},
+    },
+};
 
 #[derive(Default)]
 pub struct Menu;
@@ -28,7 +34,7 @@ const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 const MENU_BG: Color = Color::srgb(0.1, 0.1, 0.1);
 
-fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta: Res<Meta>) {
     log::info!("main_menu_setup");
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     // Common style for all buttons on the screen
@@ -78,13 +84,26 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 (
                     Text::new("ULU"),
                     TextFont {
-                        font: font.into(),
+                        font: font.clone().into(),
                         font_size: 80.0.into(),
                         ..default()
                     },
                     TextColor(TEXT_COLOR),
                     Node {
-                        margin: UiRect::all(Val::Px(50.0)),
+                        margin: UiRect::top(Val::Px(30.0)),
+                        ..default()
+                    },
+                ),
+                (
+                    Text::new("Harvest"),
+                    TextFont {
+                        font: font.clone().into(),
+                        font_size: 32.0.into(),
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.85, 0.2, 0.15)),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(30.0)),
                         ..default()
                     },
                 ),
@@ -104,7 +123,7 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ),
                          */
                         (
-                            Text::new("Start"),
+                            Text::new("New game"),
                             button_text_font.clone(),
                             TextColor(TEXT_COLOR),
                         ),
@@ -129,6 +148,39 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Quit,
                     children![(Text::new("Quit"), button_text_font, TextColor(TEXT_COLOR))],
+                ),
+                (
+                    Text::new(format!(
+                        "Achievements: {} / {}    Cats of Ulu: {} / {CAT_COUNT}",
+                        meta.achievements.len(),
+                        Achievement::ALL.len(),
+                        meta.cats.len()
+                    )),
+                    TextFont {
+                        font: font.clone().into(),
+                        font_size: 20.0.into(),
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.95, 0.85, 0.55)),
+                    Node {
+                        margin: UiRect::top(Val::Px(20.0)),
+                        ..default()
+                    },
+                ),
+                (
+                    Text::new(
+                        "Move: WASD / arrow keys / left stick    Action: Space / A    Meditate: Escape / Start"
+                    ),
+                    TextFont {
+                        font: font.clone().into(),
+                        font_size: 16.0.into(),
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                    Node {
+                        margin: UiRect::top(Val::Px(12.0)),
+                        ..default()
+                    },
                 ),
             ],
         )],
@@ -183,11 +235,13 @@ fn menu_action(
         (Changed<Interaction>, With<Button>),
     >,
     mut app_exit: MessageWriter<AppExit>,
+    mut sfx: MessageWriter<PlaySfx>,
     mut menu_state: ResMut<NextState<MenuState>>,
     mut game_state: ResMut<NextState<AppState>>,
 ) {
     for (interaction, menu_button_action) in &interaction_query {
         if *interaction == Interaction::Pressed {
+            sfx.write(PlaySfx(Sfx::Click));
             match menu_button_action {
                 MenuButtonAction::Quit => {
                     app_exit.write(AppExit::Success);
