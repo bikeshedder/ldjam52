@@ -8,8 +8,9 @@ use super::{
     dialogue::StartDialogue,
     hud::{Darkness, Prompt},
     iso::{FEET_OFFSET, cell_center, character_translation, depth_at},
+    outline::Highlighted,
     progress::{Carpet, Item, Progress, RitualCircle},
-    rooms::{Room, RoomEntity, RoomSpawned, RoomSpawner, START_ROOM, START_SPAWN},
+    rooms::{Area, Room, RoomEntity, RoomSpawned, RoomSpawner, START_ROOM, START_SPAWN},
     script::Node,
 };
 use crate::{
@@ -60,7 +61,16 @@ impl Target {
 pub struct Interactable {
     target: Target,
     radius: f32,
+    /// Map cells whose tiles are highlighted when the interaction is available.
+    area: Option<Area>,
 }
+
+/// The interactable the player can currently interact with.
+#[derive(Resource, Default)]
+struct Focus(Option<Entity>);
+
+/// Map layers whose tiles are highlighted.
+const HIGHLIGHT_LAYERS: [&str; 3] = ["Furniture", "Props", "Carpet"];
 
 /// Characters which block the player's movement.
 #[derive(Component)]
@@ -112,6 +122,7 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<RoomTracker>()
+            .init_resource::<Focus>()
             .add_systems(
                 OnEnter(AppState::Game),
                 (setup_world, enter_start_room).chain(),
@@ -132,6 +143,7 @@ impl Plugin for WorldPlugin {
                         update_world_visuals,
                         remove_librarian,
                         face_player,
+                        update_highlight,
                     )
                         .run_if(in_state(AppState::Game)),
                 )
@@ -241,6 +253,7 @@ fn spawn_room_contents(
             Interactable {
                 target,
                 radius: object.radius.unwrap_or(DEFAULT_RADIUS),
+                area: object.area,
             },
             RoomEntity,
             DespawnOnExit(AppState::Game),
@@ -264,6 +277,7 @@ fn spawn_room_contents(
                         Interactable {
                             target: Target::Magister,
                             radius: npc.radius.unwrap_or(130.0),
+                            area: None,
                         },
                         RoomEntity,
                         DespawnOnExit(AppState::Game),
@@ -291,6 +305,7 @@ fn spawn_room_contents(
                         Interactable {
                             target: Target::Librarian,
                             radius: npc.radius.unwrap_or(140.0),
+                            area: None,
                         },
                         RoomEntity,
                         DespawnOnExit(AppState::Game),
@@ -330,8 +345,51 @@ fn feet(transform: &Transform) -> Vec2 {
     transform.translation.truncate() + FEET_OFFSET * transform.scale.y
 }
 
-fn clear_prompt(mut prompt: ResMut<Prompt>) {
+fn clear_prompt(mut prompt: ResMut<Prompt>, mut focus: ResMut<Focus>) {
     prompt.0 = None;
+    focus.0 = None;
+}
+
+/// Highlights the sprite of the focused interactable, or the map tiles it covers.
+fn update_highlight(
+    mut commands: Commands,
+    focus: Res<Focus>,
+    interactables: Query<(&Interactable, Has<Sprite>)>,
+    tiles: Query<(Entity, &MapTile, &Visibility)>,
+    new_tiles: Query<(), Added<MapTile>>,
+    highlighted: Query<Entity, With<Highlighted>>,
+) {
+    if !focus.is_changed() && new_tiles.is_empty() {
+        return;
+    }
+    let targets: Vec<Entity> = match focus.0.and_then(|e| Some((e, interactables.get(e).ok()?))) {
+        Some((entity, (_, true))) => vec![entity],
+        Some((_, (interactable, false))) => interactable
+            .area
+            .map(|area| {
+                tiles
+                    .iter()
+                    .filter(|(_, tile, visibility)| {
+                        area.contains_cell(tile.cell)
+                            && HIGHLIGHT_LAYERS.contains(&tile.layer.as_str())
+                            && **visibility != Visibility::Hidden
+                    })
+                    .map(|(entity, ..)| entity)
+                    .collect()
+            })
+            .unwrap_or_default(),
+        None => Vec::new(),
+    };
+    for entity in &highlighted {
+        if !targets.contains(&entity) {
+            commands.entity(entity).remove::<Highlighted>();
+        }
+    }
+    for entity in targets {
+        if !highlighted.contains(entity) {
+            commands.entity(entity).insert(Highlighted);
+        }
+    }
 }
 
 fn librarian_from_behind(librarian: &Librarian, librarian_pos: Vec2, player_pos: Vec2) -> bool {
@@ -343,28 +401,39 @@ fn librarian_from_behind(librarian: &Librarian, librarian_pos: Vec2, player_pos:
 
 fn interact(
     player: Single<(&Player, &Transform)>,
-    interactables: Query<(&Interactable, &Transform, Option<&Librarian>)>,
+    interactables: Query<(Entity, &Interactable, &Transform, Option<&Librarian>)>,
     progress: Res<Progress>,
     mut prompt: ResMut<Prompt>,
+    mut focus: ResMut<Focus>,
     mut dialogue: MessageWriter<StartDialogue>,
 ) {
     let (player, player_transform) = *player;
     let player_pos = feet(player_transform);
     let nearest = interactables
         .iter()
-        .filter(|(interactable, ..)| interactable.target != Target::Ritual || progress.room_lit)
-        .map(|(interactable, transform, librarian)| {
+        .filter(|(_, interactable, ..)| interactable.target != Target::Ritual || progress.room_lit)
+        .map(|(entity, interactable, transform, librarian)| {
             let pos = if librarian.is_some() || interactable.target == Target::Magister {
                 feet(transform)
             } else {
                 transform.translation.truncate()
             };
-            (interactable, pos, librarian, pos.distance(player_pos))
+            (
+                entity,
+                interactable,
+                pos,
+                librarian,
+                pos.distance(player_pos),
+            )
         })
-        .filter(|(interactable, _, _, distance)| *distance <= interactable.radius)
-        .min_by(|a, b| a.3.total_cmp(&b.3));
+        .filter(|(_, interactable, _, _, distance)| *distance <= interactable.radius)
+        .min_by(|a, b| a.4.total_cmp(&b.4));
 
-    let Some((interactable, pos, librarian, _)) = nearest else {
+    let focused = nearest.as_ref().map(|(entity, ..)| *entity);
+    if focus.0 != focused {
+        focus.0 = focused;
+    }
+    let Some((_, interactable, pos, librarian, _)) = nearest else {
         prompt.0 = None;
         return;
     };

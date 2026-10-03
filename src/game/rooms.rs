@@ -7,8 +7,10 @@
 //!   Doors with the `locked` property set to `true` can't be opened.
 //! * `spawn` (point): Where the player appears when coming from the room named
 //!   like the object. `start` is used when starting a new game.
-//! * `interactable` (point): Something the player can interact with. The name
-//!   selects the dialogue, the `radius` property the interaction distance.
+//! * `interactable` (point or rectangle): Something the player can interact
+//!   with. The name selects the dialogue, the `radius` property the interaction
+//!   distance. The tiles covered by a rectangle are highlighted when the
+//!   interaction is available.
 //! * `npc` (point or polyline): A character. A polyline is used as patrol route.
 //! * `trip` (rectangle): The carpet the player trips over in the dark.
 //!
@@ -66,6 +68,15 @@ pub struct Area {
 }
 
 impl Area {
+    pub fn contains_cell(&self, cell: IVec2) -> bool {
+        let cell = cell.as_vec2();
+        cell.cmpge(self.min).all() && cell.cmplt(self.max).all()
+    }
+
+    pub fn center(&self) -> Vec2 {
+        (self.min + self.max) / 2.0
+    }
+
     pub fn contains_world(&self, pos: Vec2) -> bool {
         let cell = world_to_cell(pos);
         cell.cmpge(self.min).all() && cell.cmplt(self.max).all()
@@ -85,6 +96,7 @@ pub struct RoomObject {
     /// Position (or patrol route) in map cells.
     pub path: Vec<Vec2>,
     pub radius: Option<f32>,
+    pub area: Option<Area>,
 }
 
 /// The room the player is currently in.
@@ -132,7 +144,7 @@ impl Room {
                     .iter()
                     .map(|(x, y)| origin + Vec2::new(*x, *y) / unit)
                     .collect(),
-                _ => vec![origin],
+                _ => vec![area.map_or(origin, |area| area.center())],
             };
             let radius = match object.properties.get("radius") {
                 Some(tiled::PropertyValue::FloatValue(radius)) => Some(*radius),
@@ -143,6 +155,7 @@ impl Room {
                 name: object.name.clone(),
                 path,
                 radius,
+                area,
             };
             match (object.user_type.as_str(), area) {
                 ("door", Some(area)) => {

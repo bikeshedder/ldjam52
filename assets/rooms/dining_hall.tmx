@@ -88,17 +88,15 @@
   <object id="6" name="ritual_room" type="spawn" x="160.0" y="224.0">
    <point />
   </object>
-  <object id="7" name="table" type="interactable" x="288.0" y="185.5999999999999">
+  <object id="7" name="table" type="interactable" x="192" y="128" width="256" height="64">
    <properties>
     <property name="radius" type="float" value="150.0" />
    </properties>
-   <point />
   </object>
-  <object id="8" name="fireplace" type="interactable" x="121.59999999999991" y="352.0">
+  <object id="8" name="fireplace" type="interactable" x="64" y="320" width="64" height="64">
    <properties>
-    <property name="radius" type="float" value="120.0" />
+    <property name="radius" type="float" value="130.0" />
    </properties>
-   <point />
   </object>
  </objectgroup>
 </map>

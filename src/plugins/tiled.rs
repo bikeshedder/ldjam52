@@ -50,6 +50,7 @@ pub struct TiledMapHandle(pub Handle<TiledMap>);
 #[derive(Component, Debug, Clone)]
 pub struct MapTile {
     pub layer: String,
+    pub cell: IVec2,
     /// File name of the tile's image.
     pub image: String,
 }
@@ -322,6 +323,7 @@ fn spawn_tile_layer(
                 iso_to_screen(map, x, y, z, tileset.offset_x, tileset.offset_y),
                 MapTile {
                     layer: layer.name.clone(),
+                    cell: IVec2::new(x as i32, y as i32),
                     image,
                 },
                 ChildOf(layer_entity),

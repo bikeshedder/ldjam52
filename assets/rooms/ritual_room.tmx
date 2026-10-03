@@ -64,11 +64,10 @@
   <object id="2" name="dining_hall" type="spawn" x="224.0" y="288.0">
    <point />
   </object>
-  <object id="3" name="ritual" type="interactable" x="192.0" y="192.0">
+  <object id="3" name="ritual" type="interactable" x="128" y="128" width="128" height="128">
    <properties>
     <property name="radius" type="float" value="130.0" />
    </properties>
-   <point />
   </object>
   <object id="4" name="carpet" type="trip" x="128" y="128" width="128" height="128" />
  </objectgroup>

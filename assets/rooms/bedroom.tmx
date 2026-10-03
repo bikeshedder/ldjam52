@@ -59,23 +59,20 @@
   <object id="3" name="start" type="spawn" x="224.0" y="224.0">
    <point />
   </object>
-  <object id="4" name="bed" type="interactable" x="96.0" y="160.0">
+  <object id="4" name="bed" type="interactable" x="64" y="128" width="64" height="64">
    <properties>
     <property name="radius" type="float" value="120.0" />
    </properties>
-   <point />
   </object>
-  <object id="5" name="mirror" type="interactable" x="160.0" y="83.2">
+  <object id="5" name="mirror" type="interactable" x="64" y="0" width="64" height="64">
+   <properties>
+    <property name="radius" type="float" value="110.0" />
+   </properties>
+  </object>
+  <object id="6" name="diary" type="interactable" x="192" y="64" width="64" height="64">
    <properties>
     <property name="radius" type="float" value="100.0" />
    </properties>
-   <point />
-  </object>
-  <object id="6" name="diary" type="interactable" x="224.0" y="96.0">
-   <properties>
-    <property name="radius" type="float" value="100.0" />
-   </properties>
-   <point />
   </object>
  </objectgroup>
 </map>
