@@ -99,6 +99,9 @@ struct Librarian {
     cooldown: bool,
     /// The player sneaked up on the librarian with a knife, so he doesn't turn around.
     unaware: bool,
+    /// He already talked to the player during this visit of the library, so he
+    /// doesn't address the player on his own again.
+    addressed: bool,
 }
 
 /// Where the librarian is on his patrol through the library. This is kept
@@ -374,6 +377,7 @@ fn spawn_room_contents(
                         Librarian {
                             cooldown: false,
                             unaware: false,
+                            addressed: false,
                         },
                         Tint(Color::srgb(0.7, 0.72, 0.8)),
                         Solid { radius: 35.0 },
@@ -561,6 +565,7 @@ fn interact(
     if player.input.interact {
         if let Some(librarian) = &mut librarian {
             librarian.cooldown = true;
+            librarian.addressed = true;
             // He only stays unaware while the player can still stab him in the
             // back. Otherwise he notices the player and turns around.
             librarian.unaware = behind && !progress.librarian_met && progress.has(Item::Knife);
@@ -602,8 +607,9 @@ fn librarian_patrol(
     if librarian.cooldown {
         librarian.cooldown = distance < LIBRARIAN_SIGHT * 1.5;
     } else if distance < LIBRARIAN_SIGHT {
-        if !librarian_from_behind(patrol.facing, pos, player_pos) {
+        if !librarian.addressed && !librarian_from_behind(patrol.facing, pos, player_pos) {
             librarian.cooldown = true;
+            librarian.addressed = true;
             librarian.unaware = false;
             dialogue.write(StartDialogue(Node::Librarian));
             return;
