@@ -30,6 +30,23 @@ pub enum Item {
 }
 
 impl Item {
+    /// Path of the item's icon in the assets.
+    pub fn icon(self) -> &'static str {
+        match self {
+            Self::Knife => "icons/knife.png",
+            Self::Candle => "icons/candle.png",
+            Self::BurningCandle => "icons/burning_candle.png",
+            Self::StinkyCheese => "icons/stinky_cheese.png",
+            Self::MeltedCheese => "icons/melted_cheese.png",
+            Self::CreasedFeather => "icons/creased_feather.png",
+            Self::PerfectFeather => "icons/perfect_feather.png",
+            Self::CreasedRavenFeather => "icons/creased_raven_feather.png",
+            Self::PerfectRavenFeather => "icons/perfect_raven_feather.png",
+            Self::Wine => "icons/wine.png",
+            Self::RedHerring => "icons/red_herring.png",
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Self::Knife => "Knife",

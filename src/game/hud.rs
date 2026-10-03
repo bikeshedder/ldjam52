@@ -60,8 +60,9 @@ struct DarknessOverlay;
 struct UluEyes;
 #[derive(Component)]
 struct PromptText;
+/// The list of items in the inventory.
 #[derive(Component)]
-struct InventoryText;
+struct InventoryList;
 #[derive(Component)]
 struct PauseMenu;
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
@@ -88,6 +89,7 @@ impl Plugin for HudPlugin {
                     update_darkness,
                     update_eyes,
                     update_action_bar,
+                    update_inventory,
                     pause.run_if(in_state(Phase::Exploring)),
                     pause_menu.run_if(in_state(Phase::Paused)),
                 )
@@ -166,21 +168,19 @@ fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
             right: Val::Px(16.0),
             top: Val::Px(12.0),
             justify_content: JustifyContent::SpaceBetween,
+            align_items: AlignItems::FlexStart,
             ..default()
         },
         GlobalZIndex(30),
         DespawnOnExit(AppState::Game),
         children![
             (
-                Text::default(),
-                TextFont {
-                    font: font.clone().into(),
-                    font_size: 20.0.into(),
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(4.0),
                     ..default()
                 },
-                TextColor(Color::srgb(0.85, 0.8, 0.7)),
-                TextShadow::default(),
-                InventoryText,
+                InventoryList,
             ),
             (
                 Text::default(),
@@ -249,8 +249,7 @@ fn update_action_bar(
     progress: Res<Progress>,
     prompt: Res<Prompt>,
     phase: Res<State<Phase>>,
-    mut prompt_text: Single<&mut Text, (With<PromptText>, Without<InventoryText>)>,
-    mut inventory_text: Single<&mut Text, (With<InventoryText>, Without<PromptText>)>,
+    mut prompt_text: Single<&mut Text, With<PromptText>>,
 ) {
     let prompt = match (&prompt.0, phase.get()) {
         (Some(prompt), Phase::Exploring) => format!("{} {prompt}", device.label(Action::Confirm)),
@@ -259,13 +258,52 @@ fn update_action_bar(
     if prompt_text.0 != prompt {
         prompt_text.0 = prompt;
     }
-    if progress.is_changed() {
-        inventory_text.0 = if progress.inventory.is_empty() {
-            String::from("Inventory: -")
-        } else {
-            let items: Vec<_> = progress.inventory.iter().map(|item| item.name()).collect();
-            format!("Inventory: {}", items.join(", "))
-        };
+}
+
+/// Shows the items in the inventory with their icons, one below the other.
+fn update_inventory(
+    mut commands: Commands,
+    progress: Res<Progress>,
+    list: Single<Entity, With<InventoryList>>,
+    asset_server: Res<AssetServer>,
+) {
+    if !progress.is_changed() {
+        return;
+    }
+    commands.entity(*list).despawn_related::<Children>();
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    for item in &progress.inventory {
+        commands.spawn((
+            Node {
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(8.0),
+                padding: UiRect::new(Val::Px(4.0), Val::Px(12.0), Val::Px(2.0), Val::Px(2.0)),
+                border_radius: BorderRadius::all(Val::Px(8.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.05, 0.03, 0.06, 0.65)),
+            ChildOf(*list),
+            children![
+                (
+                    ImageNode::new(asset_server.load(item.icon())),
+                    Node {
+                        width: Val::Px(40.0),
+                        height: Val::Px(40.0),
+                        ..default()
+                    },
+                ),
+                (
+                    Text::new(item.name()),
+                    TextFont {
+                        font: font.clone().into(),
+                        font_size: 18.0.into(),
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.85, 0.75)),
+                    TextShadow::default(),
+                ),
+            ],
+        ));
     }
 }
 
