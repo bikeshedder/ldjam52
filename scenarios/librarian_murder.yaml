@@ -1,0 +1,14 @@
+# Killing the librarian leaves a blood stain where he died, which is still
+# there when coming back to the library.
+- start_game
+- skip_dialogues: true
+- enter_room: [library, hall]
+- wait: 3.0
+- give: Knife
+- start_dialogue: LibMurder
+- wait: 1.0
+- screenshot: blood_stain
+- enter_room: [hall, library]
+- enter_room: [library, hall]
+- wait: 1.0
+- screenshot: blood_stain_after_returning

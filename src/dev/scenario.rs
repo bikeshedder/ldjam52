@@ -16,6 +16,7 @@
 //! - give: BurningCandle
 //! - take: BurningCandle
 //! - set: { carpet: RolledIn, circle_candle: true }
+//! - start_dialogue: LibMurder      # any node of the dialogue script
 //! - press: Space                   # for one frame
 //! - hold: [[KeyD, KeyS], 0.4]      # keys, seconds
 //! - screenshot: name               # saved in the screenshot directory
@@ -42,10 +43,12 @@ use crate::{
     components::player::Player,
     game::{
         Phase,
+        dialogue::StartDialogue,
         hud::ScreenFx,
         iso::{FEET_OFFSET, character_translation, world_to_cell},
         progress::{Carpet, Item, Progress, RitualCircle},
         rooms::{EnterRoom, Room},
+        script::Node,
     },
 };
 
@@ -60,6 +63,7 @@ enum Step {
     Give(Item),
     Take(Item),
     Set(ProgressChanges),
+    StartDialogue(Node),
     Press(String),
     Hold(Vec<String>, f32),
     Screenshot(String),
@@ -210,6 +214,7 @@ fn play_scenario(
     room: Res<Room>,
     mut player: Query<&mut Transform, With<Player>>,
     mut enter: MessageWriter<EnterRoom>,
+    mut dialogue: MessageWriter<StartDialogue>,
     mut exit: MessageWriter<AppExit>,
 ) {
     let now = time.elapsed_secs();
@@ -267,6 +272,10 @@ fn play_scenario(
             Step::Give(item) => progress.give(item),
             Step::Take(item) => progress.take(item),
             Step::Set(changes) => changes.apply(&mut progress),
+            Step::StartDialogue(node) => {
+                dialogue.write(StartDialogue(node));
+                scenario.wait_until = now + 0.3;
+            }
             Step::Press(key) => {
                 keys.press(key_code(&key));
                 // Released in the next frame.
