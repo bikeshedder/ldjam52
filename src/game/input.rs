@@ -8,6 +8,8 @@ pub struct MenuActions {
     pub down: bool,
     pub confirm: bool,
     pub back: bool,
+    /// Open the pause menu.
+    pub pause: bool,
 }
 
 #[derive(SystemParam)]
@@ -24,12 +26,14 @@ impl MenuInput<'_, '_> {
             down: keys.any_just_pressed([KeyCode::ArrowDown, KeyCode::KeyS]),
             confirm: keys.any_just_pressed([KeyCode::Space, KeyCode::Enter]),
             back: keys.just_pressed(KeyCode::Escape),
+            pause: keys.just_pressed(KeyCode::Escape),
         };
         for gamepad in &self.gamepads {
             actions.up |= gamepad.just_pressed(GamepadButton::DPadUp);
             actions.down |= gamepad.just_pressed(GamepadButton::DPadDown);
             actions.confirm |= gamepad.just_pressed(GamepadButton::South);
             actions.back |= gamepad.any_just_pressed([GamepadButton::Start, GamepadButton::East]);
+            actions.pause |= gamepad.just_pressed(GamepadButton::Start);
         }
         actions
     }

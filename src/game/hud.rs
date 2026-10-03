@@ -270,7 +270,7 @@ fn update_action_bar(
 }
 
 fn pause(input: MenuInput, mut phase: ResMut<NextState<Phase>>) {
-    if input.read().back {
+    if input.read().pause {
         phase.set(Phase::Paused);
     }
 }

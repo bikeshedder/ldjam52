@@ -4,7 +4,7 @@ use crate::{
     AppState,
     game::{
         audio::{PlaySfx, Sfx},
-        input::{Action, DeviceText, InputDevice},
+        input::{Action, DeviceText, InputDevice, MenuInput},
         progress::{Achievement, CAT_COUNT, Meta},
     },
 };
@@ -17,12 +17,10 @@ impl Plugin for Menu {
         app
             // The menu state only exists while in `AppState::Menu`, starting at `MenuState::Main`.
             .add_sub_state::<MenuState>()
+            .init_resource::<MenuSelection>()
             // Systems to handle the main menu screen
             .add_systems(OnEnter(MenuState::Main), main_menu_setup)
-            .add_systems(
-                Update,
-                (menu_action, button_system).run_if(in_state(AppState::Menu)),
-            );
+            .add_systems(Update, menu_navigation.run_if(in_state(AppState::Menu)));
     }
 }
 
@@ -30,13 +28,13 @@ const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
 const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 const MENU_BG: Color = Color::srgb(0.1, 0.1, 0.1);
 
 fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta: Res<Meta>) {
     log::info!("main_menu_setup");
+    commands.insert_resource(MenuSelection::default());
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     // Common style for all buttons on the screen
     let button_node = Node {
@@ -197,25 +195,6 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
     ));
 }
 
-#[derive(Component)]
-struct SelectedOption;
-
-fn button_system(
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, Option<&SelectedOption>),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color, selected) in &mut interaction_query {
-        *color = match (*interaction, selected) {
-            (Interaction::Pressed, _) | (Interaction::None, Some(_)) => PRESSED_BUTTON.into(),
-            (Interaction::Hovered, Some(_)) => HOVERED_PRESSED_BUTTON.into(),
-            (Interaction::Hovered, None) => HOVERED_BUTTON.into(),
-            (Interaction::None, None) => NORMAL_BUTTON.into(),
-        }
-    }
-}
-
 // State used for the current menu screen
 #[derive(SubStates, Clone, Copy, Default, Eq, PartialEq, Debug, Hash)]
 #[source(AppState = AppState::Menu)]
@@ -228,7 +207,7 @@ enum MenuState {
 }
 
 // All actions that can be triggered from a button click
-#[derive(Component)]
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
 enum MenuButtonAction {
     Play,
     Settings,
@@ -239,30 +218,64 @@ enum MenuButtonAction {
     Quit,
 }
 
-fn menu_action(
-    interaction_query: Query<
-        (&Interaction, &MenuButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
+/// The buttons of the main menu from top to bottom.
+const MAIN_MENU: [MenuButtonAction; 2] = [MenuButtonAction::Play, MenuButtonAction::Quit];
+
+/// Index of the highlighted button in [`MAIN_MENU`].
+#[derive(Resource, Default)]
+struct MenuSelection(usize);
+
+/// Navigates the menu with keyboard, gamepad or mouse.
+#[allow(clippy::type_complexity)]
+fn menu_navigation(
+    input: MenuInput,
+    mut selection: ResMut<MenuSelection>,
+    mut buttons: Query<(Ref<Interaction>, &MenuButtonAction, &mut BackgroundColor), With<Button>>,
     mut app_exit: MessageWriter<AppExit>,
     mut sfx: MessageWriter<PlaySfx>,
     mut menu_state: ResMut<NextState<MenuState>>,
     mut game_state: ResMut<NextState<AppState>>,
 ) {
-    for (interaction, menu_button_action) in &interaction_query {
-        if *interaction == Interaction::Pressed {
-            sfx.write(PlaySfx(Sfx::Click));
-            match menu_button_action {
-                MenuButtonAction::Quit => {
-                    app_exit.write(AppExit::Success);
-                }
-                MenuButtonAction::Play => game_state.set(AppState::Game),
-                MenuButtonAction::Settings => menu_state.set(MenuState::Settings),
-                MenuButtonAction::SettingsDisplay => menu_state.set(MenuState::SettingsDisplay),
-                MenuButtonAction::SettingsSound => menu_state.set(MenuState::SettingsSound),
-                MenuButtonAction::BackToMainMenu => menu_state.set(MenuState::Main),
-                MenuButtonAction::BackToSettings => menu_state.set(MenuState::Settings),
+    let actions = input.read();
+    let count = MAIN_MENU.len();
+    if actions.up {
+        selection.0 = (selection.0 + count - 1) % count;
+    }
+    if actions.down {
+        selection.0 = (selection.0 + 1) % count;
+    }
+    let mut chosen = actions.confirm.then_some(MAIN_MENU[selection.0]);
+    for (interaction, action, mut color) in &mut buttons {
+        let index = MAIN_MENU.iter().position(|a| a == action);
+        if interaction.is_changed() {
+            match *interaction {
+                Interaction::Pressed => chosen = Some(*action),
+                Interaction::Hovered => selection.0 = index.unwrap_or(selection.0),
+                Interaction::None => {}
             }
         }
+        color.0 = if *interaction == Interaction::Pressed {
+            PRESSED_BUTTON
+        } else if index == Some(selection.0) {
+            HOVERED_BUTTON
+        } else {
+            NORMAL_BUTTON
+        };
+    }
+
+    let Some(action) = chosen else {
+        return;
+    };
+    sfx.write(PlaySfx(Sfx::Click));
+    match action {
+        MenuButtonAction::Quit => {
+            app_exit.write(AppExit::Success);
+        }
+        MenuButtonAction::Play => game_state.set(AppState::Game),
+        MenuButtonAction::Settings => menu_state.set(MenuState::Settings),
+        MenuButtonAction::SettingsDisplay => menu_state.set(MenuState::SettingsDisplay),
+        MenuButtonAction::SettingsSound => menu_state.set(MenuState::SettingsSound),
+        MenuButtonAction::BackToMainMenu => menu_state.set(MenuState::Main),
+        MenuButtonAction::BackToSettings => menu_state.set(MenuState::Settings),
     }
 }
