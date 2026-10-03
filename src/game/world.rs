@@ -529,19 +529,19 @@ fn interact(
         .is_some_and(|_| librarian_from_behind(patrol.facing, pos, player_pos));
     if let Target::Door(index) = interactable.target {
         prompt.0 = Some("Open the door".to_string());
-        if player.input.interact {
-            if let Some(door) = room.doors.get(index) {
-                match &door.target {
-                    Some(target) => {
-                        enter.write(EnterRoom {
-                            room: target.clone(),
-                            spawn: room.name.clone(),
-                        });
-                    }
-                    None => {
-                        let occupant = Occupant::from_name(&door.name);
-                        dialogue.write(StartDialogue(Node::LockedDoor(occupant)));
-                    }
+        if player.input.interact
+            && let Some(door) = room.doors.get(index)
+        {
+            match &door.target {
+                Some(target) => {
+                    enter.write(EnterRoom {
+                        room: target.clone(),
+                        spawn: room.name.clone(),
+                    });
+                }
+                None => {
+                    let occupant = Occupant::from_name(&door.name);
+                    dialogue.write(StartDialogue(Node::LockedDoor(occupant)));
                 }
             }
         }
