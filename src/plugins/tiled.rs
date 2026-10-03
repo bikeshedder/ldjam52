@@ -13,7 +13,7 @@ use std::{
 
 use bevy::{
     asset::{AssetLoader, LoadContext, ReadAssetBytesError, io::Reader},
-    platform::collections::HashMap,
+    platform::collections::{HashMap, HashSet},
     prelude::*,
     sprite::Anchor,
 };
@@ -224,6 +224,7 @@ fn image_name(tile: Option<tiled::Tile>) -> String {
 
 fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &TiledMap) {
     let map = &tiled_map.map;
+    let walls = wall_cells(map);
 
     for (layer_index, layer) in map.layers().enumerate() {
         let layer_entity = commands
@@ -235,6 +236,10 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
             .id();
         match layer.layer_type() {
             tiled::LayerType::Tiles(tiled::TileLayer::Finite(layer_data)) => {
+                let walls = walls
+                    .as_ref()
+                    .filter(|(walls_index, _)| layer_index > *walls_index)
+                    .map(|(_, cells)| cells);
                 spawn_tile_layer(
                     commands,
                     layer_entity,
@@ -242,6 +247,7 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
                     &layer,
                     &layer_data,
                     layer_index,
+                    walls,
                 );
             }
             tiled::LayerType::Objects(objects) => {
@@ -255,6 +261,26 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
     }
 }
 
+/// Index of the layer called `Walls` and the cells covered by it.
+fn wall_cells(map: &tiled::Map) -> Option<(usize, HashSet<IVec2>)> {
+    map.layers().enumerate().find_map(|(index, layer)| {
+        let tiled::LayerType::Tiles(tiled::TileLayer::Finite(data)) = layer.layer_type() else {
+            return None;
+        };
+        (layer.name == "Walls").then(|| {
+            let cells = (0..map.height as i32)
+                .flat_map(|y| (0..map.width as i32).map(move |x| IVec2::new(x, y)))
+                .filter(|cell| data.get_tile(cell.x, cell.y).is_some())
+                .collect();
+            (index, cells)
+        })
+    })
+}
+
+/// Spawns the tiles of a tile layer. `walls` are the wall cells if the layer is
+/// above the walls layer: Tiles mounted on walls (e.g. windows) are drawn in
+/// front of the whole wall like Tiled draws them.
+#[allow(clippy::too_many_arguments)]
 fn spawn_tile_layer(
     commands: &mut Commands,
     layer_entity: Entity,
@@ -262,6 +288,7 @@ fn spawn_tile_layer(
     layer: &tiled::Layer,
     layer_data: &tiled::FiniteTileLayer,
     layer_index: usize,
+    walls: Option<&HashSet<IVec2>>,
 ) {
     let map = &tiled_map.map;
     for x in 0..map.width {
@@ -273,8 +300,12 @@ fn spawn_tile_layer(
             let tileset = layer_tile.get_tileset();
             let is_flat =
                 matches!(layer.name.as_str(), "Floor" | "Carpet") || is_flat_image(&image);
+            let on_wall =
+                walls.is_some_and(|walls| walls.contains(&IVec2::new(x as i32, y as i32)));
             let z = if is_flat {
                 flat_depth(layer_index)
+            } else if on_wall {
+                upright_depth((x + y + 1) as f32, layer_index as f32 * 0.1)
             } else {
                 upright_depth((x + y) as f32, layer_index as f32 * 0.1)
             };
