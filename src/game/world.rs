@@ -243,21 +243,7 @@ pub fn spawn_entity(
                 AnimationTimer::default(),
             ))
         }
-        _ => unimplemented!(),
     };
-    if let Some(interaction) = &entity_type.interaction {
-        entity_cmds.insert(crate::components::interaction::Interaction {
-            name: interaction.name.clone(),
-            center: Vec3::new(
-                translation.x - f32::from(entity_type.size.width) / 2.0
-                    + f32::from(interaction.position.x),
-                translation.y + f32::from(entity_type.size.height) / 2.0
-                    - f32::from(interaction.position.y),
-                0.0,
-            ),
-            max_distance: interaction.max_distance,
-        });
-    }
     entity_cmds.insert(extra);
     entity_cmds.id()
 }

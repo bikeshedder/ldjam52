@@ -7,8 +7,6 @@ use bevy::{
 };
 use serde::Deserialize;
 
-use super::common::{Position, Rect, Size};
-
 #[derive(Default, Resource)]
 pub struct EntityTypes {
     pub types: HashMap<String, EntityType>,
@@ -24,10 +22,6 @@ impl Index<&str> for EntityTypes {
 #[derive(Deserialize, Debug)]
 pub struct EntityType {
     #[serde(flatten)]
-    pub size: Size,
-    pub collision: Option<Rect>,
-    pub interaction: Option<Interaction>,
-    #[serde(flatten)]
     pub image: EntityImage,
     #[serde(skip)]
     pub loaded: Option<Loaded>,
@@ -36,15 +30,7 @@ pub struct EntityType {
 #[derive(Debug)]
 pub enum Loaded {
     Static(Handle<Image>),
-    Animation(LoadedAnimation),
     Animations(LoadedAnimations),
-}
-
-#[derive(Debug)]
-pub struct LoadedAnimation {
-    pub image: Handle<Image>,
-    pub layout: Handle<TextureAtlasLayout>,
-    pub frames: Vec<(usize, Duration)>,
 }
 
 #[derive(Debug)]
@@ -58,8 +44,6 @@ pub struct LoadedAnimations {
 pub enum EntityImage {
     #[serde(rename = "image")]
     Static(String),
-    #[serde(rename = "animation")]
-    Animation(Frames),
     #[serde(rename = "animations")]
     Animations(HashMap<String, Frames>),
 }
@@ -70,15 +54,6 @@ pub type Frames = Vec<Frame>;
 pub struct Frame {
     pub image: String,
     pub duration: u64,
-    #[serde(skip)]
-    pub index: usize,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Interaction {
-    pub name: String,
-    pub position: Position,
-    pub max_distance: u16,
 }
 
 pub fn load_entity_types() -> anyhow::Result<EntityTypes> {

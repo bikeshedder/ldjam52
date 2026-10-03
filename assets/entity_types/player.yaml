@@ -1,5 +1,3 @@
-width: 256
-height: 256
 animations:
   idle_up:
     - image: "LD_23_Mouse_Walkcycle_Back__00.png"

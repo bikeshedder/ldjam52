@@ -46,7 +46,6 @@ pub fn load_textures(
                     image_handles.handles.insert(path, handle);
                 }
             }
-            _ => unimplemented!(),
         }
     }
 }
@@ -121,7 +120,6 @@ pub fn check_textures(
                         .collect(),
                 }));
             }
-            _ => unimplemented!(),
         }
     }
 
