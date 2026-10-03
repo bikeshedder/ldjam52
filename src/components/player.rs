@@ -1,5 +1,6 @@
 use bevy::{
     input::{ButtonInput, gamepad::Gamepad},
+    math::Vec2,
     prelude::{Component, GamepadButton, KeyCode},
 };
 
@@ -32,19 +33,21 @@ impl PlayerInput {
         let key_right = key_to_analog(key, &[KeyCode::KeyD, KeyCode::ArrowRight], 1.0);
         let key_up = key_to_analog(key, &[KeyCode::KeyW, KeyCode::ArrowUp], 1.0);
         let key_down = key_to_analog(key, &[KeyCode::KeyS, KeyCode::ArrowDown], -1.0);
+        let direction = limit(Vec2::new(key_right + key_left, key_up + key_down));
         Self {
-            x: key_right + key_left,
-            y: key_up + key_down,
+            x: direction.x,
+            y: direction.y,
             interact: key.any_just_pressed([KeyCode::Space, KeyCode::Enter]),
             back: key.just_pressed(KeyCode::Escape),
         }
     }
     pub fn from_gamepad(gamepad: &Gamepad) -> Self {
         let stick = gamepad.left_stick();
-        let dpad = gamepad.dpad();
+        let stick = Vec2::new(deadzone(stick.x), deadzone(stick.y));
+        let direction = limit(stick + gamepad.dpad());
         Self {
-            x: (deadzone(stick.x) + dpad.x).clamp(-1.0, 1.0),
-            y: (deadzone(stick.y) + dpad.y).clamp(-1.0, 1.0),
+            x: direction.x,
+            y: direction.y,
             interact: gamepad.just_pressed(GamepadButton::South),
             back: gamepad.just_pressed(GamepadButton::East),
         }
@@ -56,9 +59,16 @@ impl PlayerInput {
             self.interact |= input.interact;
             self.back |= input.back;
         }
-        self.x = self.x.clamp(-1.0, 1.0);
-        self.y = self.y.clamp(-1.0, 1.0);
+        let direction = limit(Vec2::new(self.x, self.y));
+        self.x = direction.x;
+        self.y = direction.y;
     }
+}
+
+/// Limits the length of a direction to 1, so moving diagonally with digital
+/// inputs (keys, D-Pad) isn't faster than with a fully tilted analog stick.
+fn limit(direction: Vec2) -> Vec2 {
+    direction.clamp_length_max(1.0)
 }
 
 fn deadzone(value: f32) -> f32 {
