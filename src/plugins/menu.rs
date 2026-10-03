@@ -397,14 +397,30 @@ fn achievements_setup(mut commands: Commands, asset_server: Res<AssetServer>, me
     ));
 }
 
-/// The people who made the game and what they did.
-const CREDITS: [(&str, &str); 5] = [
+/// The people who made the game and what they did. They are listed in a random
+/// order every time the credits are shown.
+const CREDITS: [(&str, &str); 4] = [
     ("Michael P. Jung", "Story & Software Engineer"),
     ("Tim Markmann", "Story & Level Design"),
     ("Tom Haase", "Music & Sounds"),
     ("Manuel Terranova", "Story & Dialogs"),
-    ("Claude AI", "Junior Developer"),
 ];
+
+/// Always listed after the team.
+const JUNIOR_DEVELOPER: (&str, &str) = ("Claude AI", "Junior Developer");
+
+/// The credits in a random order, followed by the junior developer.
+fn shuffled_credits() -> Vec<(&'static str, &'static str)> {
+    use std::hash::{BuildHasher, RandomState};
+    let mut credits = CREDITS.to_vec();
+    // Fisher-Yates shuffle. Every `RandomState` is randomly seeded.
+    for i in (1..credits.len()).rev() {
+        let j = (RandomState::new().hash_one(i) % (i as u64 + 1)) as usize;
+        credits.swap(i, j);
+    }
+    credits.push(JUNIOR_DEVELOPER);
+    credits
+}
 
 fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(MenuSelection::default());
@@ -454,7 +470,7 @@ fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         ChildOf(panel),
     ));
-    for (name, role) in CREDITS {
+    for (name, role) in shuffled_credits() {
         commands.spawn((text(name, 26.0, Color::WHITE), ChildOf(panel)));
         commands.spawn((
             text(role, 17.0, Color::srgb(0.75, 0.55, 0.2)),
@@ -538,5 +554,22 @@ fn menu_navigation(
         MenuButtonAction::Achievements => menu_state.set(MenuState::Achievements),
         MenuButtonAction::Credits => menu_state.set(MenuState::Credits),
         MenuButtonAction::BackToMainMenu => menu_state.set(MenuState::Main),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn credits_are_shuffled_with_the_junior_developer_last() {
+        let orders: std::collections::HashSet<_> = (0..200).map(|_| shuffled_credits()).collect();
+        for credits in &orders {
+            assert_eq!(credits.len(), CREDITS.len() + 1);
+            assert_eq!(credits.last(), Some(&JUNIOR_DEVELOPER));
+            assert!(CREDITS.iter().all(|entry| credits.contains(entry)));
+        }
+        // 24 possible orders, 200 tries should find most of them.
+        assert!(orders.len() > 10, "only {} different orders", orders.len());
     }
 }
