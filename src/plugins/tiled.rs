@@ -71,6 +71,12 @@ pub fn is_flat_image(image: &str) -> bool {
     image.contains("Glow_Floor")
 }
 
+/// Whether tiles with this image hang on the wall behind their cell (e.g.
+/// paintings). They are drawn with the wall, so nothing can walk behind them.
+pub fn is_wall_hanging_image(image: &str) -> bool {
+    image.contains("Painting")
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum TiledLoaderError {
     #[error("Could not read TMX map: {0}")]
@@ -307,6 +313,9 @@ fn spawn_tile_layer(
                 flat_depth(layer_index)
             } else if on_wall {
                 upright_depth((x + y + 1) as f32, layer_index as f32 * 0.1)
+            } else if is_wall_hanging_image(&image) {
+                // In front of the wall, behind furniture standing against it.
+                upright_depth((x + y) as f32 - 1.0, layer_index as f32 * 0.1 - 0.05)
             } else {
                 upright_depth((x + y) as f32, layer_index as f32 * 0.1)
             };
