@@ -1,0 +1,26 @@
+# The dark ritual room: leaving it right away, the candle light carried by the
+# player and the light of the candle placed on the invocation circle.
+- start_game
+- skip_dialogues: true
+- enter_room: [dining_hall, library]
+- skip_dialogues: false
+- enter_room: [ritual_room, dining_hall]
+- expect_phase: Dialogue
+- press: Space
+- press: Up
+- screenshot: dark_leave_choice
+- press: Space   # choose the answer
+- press: Space   # reveal the whole line
+- press: Space   # close the dialogue
+- wait: 2.5
+- expect_room: dining_hall
+- give: BurningCandle
+- enter_room: [ritual_room, dining_hall]
+- expect_phase: Exploring
+- teleport: [1.5, 2.0]
+- screenshot: dark_candle
+- take: BurningCandle
+- set: { carpet: RolledIn, circle: Unfinished, circle_candle: true }
+- teleport: [3.0, 1.5]
+- wait: 1.5
+- screenshot: dark_placed

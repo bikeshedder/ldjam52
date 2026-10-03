@@ -14,7 +14,7 @@ pub const OCCUPANT_COUNT: usize = 4;
 /// Number of cats of Ulu which can be collected.
 pub const CAT_COUNT: usize = 8;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize)]
 pub enum Item {
     Knife,
     Candle,
@@ -64,7 +64,7 @@ impl Item {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 pub enum Carpet {
     #[default]
     Clean,
@@ -72,7 +72,7 @@ pub enum Carpet {
     RolledIn,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 pub enum RitualCircle {
     #[default]
     None,

@@ -17,6 +17,8 @@ use systems::{
 
 mod components;
 mod data;
+#[cfg(feature = "dev")]
+mod dev;
 mod game;
 mod helpers;
 mod plugins;
@@ -46,37 +48,41 @@ fn setup(mut commands: Commands) {
 fn main() -> anyhow::Result<()> {
     let entity_types = load_entity_types()?;
 
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: String::from("ULU - Harvest"),
-                present_mode: PresentMode::Immediate,
-                ..default()
-            }),
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: String::from("ULU - Harvest"),
+            present_mode: PresentMode::Immediate,
             ..default()
-        }))
-        .add_plugins((
-            FrameTimeDiagnosticsPlugin::default(),
-            LogDiagnosticsPlugin::default(),
-            Menu,
-            TiledMapPlugin,
-        ))
-        .init_state::<AppState>()
-        .add_plugins(GamePlugin)
-        .insert_resource(ClearColor(Color::BLACK))
-        .init_resource::<ImageHandles>()
-        .insert_resource(entity_types)
-        .add_systems(Startup, setup)
-        .add_systems(OnEnter(AppState::Loading), load_textures)
-        .add_systems(Update, check_textures.run_if(in_state(AppState::Loading)))
-        .add_systems(
-            Update,
-            (
-                player_input.run_if(in_state(Phase::Exploring)),
-                (player_system, animation_system, camera_system).run_if(in_state(AppState::Game)),
-            )
-                .chain(),
+        }),
+        ..default()
+    }))
+    .add_plugins((
+        FrameTimeDiagnosticsPlugin::default(),
+        LogDiagnosticsPlugin::default(),
+        Menu,
+        TiledMapPlugin,
+    ))
+    .init_state::<AppState>()
+    .add_plugins(GamePlugin)
+    .insert_resource(ClearColor(Color::BLACK))
+    .init_resource::<ImageHandles>()
+    .insert_resource(entity_types)
+    .add_systems(Startup, setup)
+    .add_systems(OnEnter(AppState::Loading), load_textures)
+    .add_systems(Update, check_textures.run_if(in_state(AppState::Loading)))
+    .add_systems(
+        Update,
+        (
+            player_input.run_if(in_state(Phase::Exploring)),
+            (player_system, animation_system, camera_system).run_if(in_state(AppState::Game)),
         )
-        .run();
+            .chain(),
+    );
+    #[cfg(feature = "dev")]
+    app.add_plugins(dev::scenario::ScenarioPlugin);
+    if app.run().is_error() {
+        std::process::exit(1);
+    }
     Ok(())
 }

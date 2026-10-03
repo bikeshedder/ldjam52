@@ -5,6 +5,10 @@ edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+# Development tools, e.g. the scenario runner (see src/dev/scenario.rs).
+dev = []
+
 [dependencies]
 anyhow = "1.0.104"
 bevy = { version = "0.19.1", features = ["dynamic_linking"] }

@@ -1,0 +1,21 @@
+# Walks through all rooms and takes a screenshot of each.
+- start_game
+- skip_dialogues: true
+- screenshot: bedroom
+- enter_room: [hall, bedroom]
+- expect_room: hall
+- screenshot: hall
+- enter_room: [library, hall]
+- expect_room: library
+- screenshot: library
+- enter_room: [study, library]
+- expect_room: study
+- screenshot: study
+- enter_room: [dining_hall, library]
+- expect_room: dining_hall
+- screenshot: dining_hall
+- give: BurningCandle
+- enter_room: [ritual_room, dining_hall]
+- expect_room: ritual_room
+- expect_phase: Exploring
+- screenshot: ritual_room
