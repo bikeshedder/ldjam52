@@ -1,19 +1,18 @@
 // Source: https://github.com/StarArawn/bevy_ecs_tilemap/pull/381
 
 // Limitations:
-//   Some Tiled tilesets use a single image (a.k.a spritesheet) and then find the image based on
-//   caclculated pixel offsets within that image. Other tilesets use a separate image per tile in
-//   the tileset. This loader is compatible with either style but will not work with maps that mix
-//   the two styles.
-//   * Only finite tile layers are loaded. Infinite tile layers and object layers will be skipped.
+//   * Only tilesets using a separate image per tile are supported.
+//   * Only finite tile layers are loaded. Infinite tile layers are skipped.
+//   * Object layers are only rendered if they contain tile objects. Other objects
+//     are left for the game to interpret.
 
 use std::{
     io::{Cursor, ErrorKind},
-    path::{Path, PathBuf},
+    path::{Component as PathComponent, Path, PathBuf},
 };
 
 use bevy::{
-    asset::{AssetLoader, LoadContext, io::Reader},
+    asset::{AssetLoader, LoadContext, ReadAssetBytesError, io::Reader},
     platform::collections::HashMap,
     prelude::*,
     sprite::Anchor,
@@ -51,7 +50,8 @@ pub struct TiledMapHandle(pub Handle<TiledMap>);
 #[derive(Component, Debug, Clone)]
 pub struct MapTile {
     pub layer: String,
-    pub cell: IVec2,
+    /// File name of the tile's image.
+    pub image: String,
 }
 
 /// Depth for flat tiles (floors, carpets, ...) which are always drawn below upright ones.
@@ -65,37 +65,63 @@ pub fn upright_depth(cell_sum: f32, bias: f32) -> f32 {
     10.0 + cell_sum * 10.0 + bias
 }
 
+/// Whether tiles with this image lie flat on the floor.
+pub fn is_flat_image(image: &str) -> bool {
+    image.contains("Glow_Floor")
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum TiledLoaderError {
     #[error("Could not read TMX map: {0}")]
     Io(#[from] std::io::Error),
+    #[error("Could not read a resource of the TMX map: {0}")]
+    ReadAsset(#[from] ReadAssetBytesError),
     #[error("Could not load TMX map: {0}")]
     Tiled(#[from] tiled::Error),
     #[error("Tilesets with a texture atlas are not supported")]
     TextureAtlasTileset,
 }
 
-/// A [`tiled::ResourceReader`] which serves the already read map file. External
-/// resources (e.g. `.tsx` tilesets) are not supported.
-struct BytesResourceReader<'a> {
-    path: &'a Path,
-    bytes: &'a [u8],
+/// Resolves `.` and `..` components, as the asset server expects normalized paths.
+pub fn normalize_path(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            PathComponent::ParentDir => {
+                normalized.pop();
+            }
+            PathComponent::CurDir => {}
+            other => normalized.push(other),
+        }
+    }
+    normalized
 }
 
-impl<'a> tiled::ResourceReader for BytesResourceReader<'a> {
-    type Resource = Cursor<&'a [u8]>;
+/// A [`tiled::ResourceReader`] serving the map and the external tilesets which
+/// were read ahead of time, as `tiled` can't read files asynchronously.
+struct PrefetchedResources(HashMap<PathBuf, Vec<u8>>);
+
+impl tiled::ResourceReader for PrefetchedResources {
+    type Resource = Cursor<Vec<u8>>;
     type Error = std::io::Error;
 
     fn read_from(&mut self, path: &Path) -> Result<Self::Resource, Self::Error> {
-        if path == self.path {
-            Ok(Cursor::new(self.bytes))
-        } else {
-            Err(std::io::Error::new(
+        match self.0.get(&normalize_path(path)) {
+            Some(bytes) => Ok(Cursor::new(bytes.clone())),
+            None => Err(std::io::Error::new(
                 ErrorKind::NotFound,
-                format!("External resources are not supported: {}", path.display()),
-            ))
+                format!("Resource was not prefetched: {}", path.display()),
+            )),
         }
     }
+}
+
+/// Finds the external tilesets referenced by a map.
+fn external_tilesets(tmx: &str) -> impl Iterator<Item = &str> {
+    tmx.split("source=\"")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .filter(|source| source.ends_with(".tsx"))
 }
 
 #[derive(TypePath)]
@@ -115,11 +141,19 @@ impl AssetLoader for TiledLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
         let path = PathBuf::from(load_context.path().path());
-        let map = tiled::Loader::with_reader(BytesResourceReader {
-            path: &path,
-            bytes: &bytes,
-        })
-        .load_tmx_map(&path)?;
+        let dir = path.parent().map(Path::to_path_buf).unwrap_or_default();
+
+        let mut resources = HashMap::new();
+        let tilesets: Vec<PathBuf> = external_tilesets(&String::from_utf8_lossy(&bytes))
+            .map(|source| normalize_path(&dir.join(source)))
+            .collect();
+        for tileset in tilesets {
+            let tileset_bytes = load_context.read_asset_bytes(tileset.clone()).await?;
+            resources.insert(tileset, tileset_bytes);
+        }
+        resources.insert(path.clone(), bytes);
+
+        let map = tiled::Loader::with_reader(PrefetchedResources(resources)).load_tmx_map(&path)?;
         let mut tilesets = Vec::new();
         for tileset in map.tilesets() {
             if tileset.image.is_some() {
@@ -128,11 +162,7 @@ impl AssetLoader for TiledLoader {
             let mut images = HashMap::new();
             for (tile_id, tile) in tileset.tiles() {
                 if let Some(img) = &tile.image {
-                    log::debug!(
-                        "Loading tile image from {:?} as image ({tile_id})",
-                        img.source
-                    );
-                    images.insert(tile_id, load_context.load(img.source.clone()));
+                    images.insert(tile_id, load_context.load(normalize_path(&img.source)));
                 }
             }
             tilesets.push(TiledTileset { images });
@@ -156,16 +186,10 @@ pub fn process_loaded_maps(
     let mut changed_maps = Vec::<AssetId<TiledMap>>::new();
     for event in map_events.read() {
         match event {
-            AssetEvent::LoadedWithDependencies { id } => {
-                log::info!("Map added!");
-                changed_maps.push(*id);
-            }
-            AssetEvent::Modified { id } => {
-                log::info!("Map changed!");
+            AssetEvent::LoadedWithDependencies { id } | AssetEvent::Modified { id } => {
                 changed_maps.push(*id);
             }
             AssetEvent::Removed { id } => {
-                log::info!("Map removed!");
                 // if the map was modified and removed in the same update, ignore the modification
                 // events are ordered so future modification events are ok
                 changed_maps.retain(|changed_id| changed_id != id);
@@ -188,26 +212,20 @@ pub fn process_loaded_maps(
     }
 }
 
+fn image_name(tile: Option<tiled::Tile>) -> String {
+    tile.and_then(|tile| tile.image.as_ref().map(|image| image.source.clone()))
+        .and_then(|source| {
+            source
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+        })
+        .unwrap_or_default()
+}
+
 fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &TiledMap) {
     let map = &tiled_map.map;
 
     for (layer_index, layer) in map.layers().enumerate() {
-        let tiled::LayerType::Tiles(tile_layer) = layer.layer_type() else {
-            log::info!(
-                "Skipping layer {} because only tile layers are supported.",
-                layer.id()
-            );
-            continue;
-        };
-
-        let tiled::TileLayer::Finite(layer_data) = tile_layer else {
-            log::info!(
-                "Skipping layer {} because only finite layers are supported.",
-                layer.id()
-            );
-            continue;
-        };
-
         let layer_entity = commands
             .spawn((
                 Transform::default(),
@@ -215,43 +233,119 @@ fn spawn_map_tiles(commands: &mut Commands, map_entity: Entity, tiled_map: &Tile
                 ChildOf(map_entity),
             ))
             .id();
-
-        for x in 0..map.width {
-            for y in 0..map.height {
-                let Some(layer_tile) = layer_data.get_tile(x as i32, y as i32) else {
-                    continue;
-                };
-                let tiled_tileset = &tiled_map.tilesets[layer_tile.tileset_index()];
-                let image_handle = tiled_tileset.images[&layer_tile.id()].clone();
-                let tileset = layer_tile.get_tileset();
-                let is_flat = matches!(layer.name.as_str(), "Floor" | "Carpet")
-                    || layer_tile
-                        .get_tile()
-                        .and_then(|tile| tile.image.as_ref().map(|i| i.source.clone()))
-                        .is_some_and(|source| source.to_string_lossy().contains("Glow_Floor"));
-                let z = if is_flat {
-                    flat_depth(layer_index)
-                } else {
-                    upright_depth((x + y) as f32, layer_index as f32 * 0.1)
-                };
-                commands.spawn((
-                    Sprite {
-                        image: image_handle,
-                        flip_x: layer_tile.flip_h,
-                        flip_y: layer_tile.flip_v,
-                        // FIXME flip_d ?
-                        ..default()
-                    },
-                    Anchor::BOTTOM_LEFT,
-                    iso_to_screen(map, x, y, z, tileset.offset_x, tileset.offset_y),
-                    MapTile {
-                        layer: layer.name.clone(),
-                        cell: IVec2::new(x as i32, y as i32),
-                    },
-                    ChildOf(layer_entity),
-                ));
+        match layer.layer_type() {
+            tiled::LayerType::Tiles(tiled::TileLayer::Finite(layer_data)) => {
+                spawn_tile_layer(
+                    commands,
+                    layer_entity,
+                    tiled_map,
+                    &layer,
+                    &layer_data,
+                    layer_index,
+                );
             }
+            tiled::LayerType::Objects(objects) => {
+                spawn_tile_objects(commands, layer_entity, tiled_map, &objects, layer_index);
+            }
+            _ => log::info!(
+                "Skipping layer {} because only finite tile and object layers are supported.",
+                layer.id()
+            ),
         }
+    }
+}
+
+fn spawn_tile_layer(
+    commands: &mut Commands,
+    layer_entity: Entity,
+    tiled_map: &TiledMap,
+    layer: &tiled::Layer,
+    layer_data: &tiled::FiniteTileLayer,
+    layer_index: usize,
+) {
+    let map = &tiled_map.map;
+    for x in 0..map.width {
+        for y in 0..map.height {
+            let Some(layer_tile) = layer_data.get_tile(x as i32, y as i32) else {
+                continue;
+            };
+            let image = image_name(layer_tile.get_tile());
+            let tileset = layer_tile.get_tileset();
+            let is_flat =
+                matches!(layer.name.as_str(), "Floor" | "Carpet") || is_flat_image(&image);
+            let z = if is_flat {
+                flat_depth(layer_index)
+            } else {
+                upright_depth((x + y) as f32, layer_index as f32 * 0.1)
+            };
+            commands.spawn((
+                Sprite {
+                    image: tiled_map.tilesets[layer_tile.tileset_index()].images[&layer_tile.id()]
+                        .clone(),
+                    flip_x: layer_tile.flip_h,
+                    flip_y: layer_tile.flip_v,
+                    // FIXME flip_d ?
+                    ..default()
+                },
+                Anchor::BOTTOM_LEFT,
+                iso_to_screen(map, x, y, z, tileset.offset_x, tileset.offset_y),
+                MapTile {
+                    layer: layer.name.clone(),
+                    image,
+                },
+                ChildOf(layer_entity),
+            ));
+        }
+    }
+}
+
+/// Spawns the tile objects of an object layer. In isometric maps, the position
+/// of a tile object is the bottom center of its image.
+fn spawn_tile_objects(
+    commands: &mut Commands,
+    layer_entity: Entity,
+    tiled_map: &TiledMap,
+    objects: &tiled::ObjectLayer,
+    layer_index: usize,
+) {
+    let map = &tiled_map.map;
+    let (tile_width, tile_height) = (map.tile_width as f32, map.tile_height as f32);
+    for object in objects.objects() {
+        let (Some(data), Some(tile)) = (object.tile_data(), object.get_tile()) else {
+            continue;
+        };
+        let tiled::TilesetLocation::Map(tileset_index) = *data.tileset_location() else {
+            continue;
+        };
+        let Some(image) = tiled_map.tilesets[tileset_index].images.get(&data.id()) else {
+            continue;
+        };
+        let tileset = tile.get_tileset();
+        // Position in map cells and on screen (as Tiled draws it, y pointing down).
+        let cell = Vec2::new(object.x, object.y) / tile_height;
+        let screen = Vec2::new(
+            (cell.x - cell.y) * tile_width / 2.0 + tileset.offset_x as f32,
+            (cell.x + cell.y) * tile_height / 2.0 + tileset.offset_y as f32,
+        );
+        let custom_size = match object.shape {
+            tiled::ObjectShape::Rect { width, height } => Some(Vec2::new(width, height)),
+            _ => None,
+        };
+        // Tile objects are usually placed on top of other things (e.g. a mug on a
+        // table), so they are drawn in front of the cell they stand on.
+        let z = upright_depth(cell.x + cell.y, 0.2 + layer_index as f32 * 0.1);
+        commands.spawn((
+            Sprite {
+                image: image.clone(),
+                flip_x: data.flip_h,
+                flip_y: data.flip_v,
+                custom_size,
+                ..default()
+            },
+            Anchor::BOTTOM_CENTER,
+            Transform::from_xyz(screen.x + tile_width / 2.0, tile_height - screen.y, z),
+            ChildOf(layer_entity),
+        ));
     }
 }
 

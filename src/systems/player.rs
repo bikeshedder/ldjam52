@@ -14,6 +14,8 @@ use crate::{
 
 pub const PLAYER_SPEED_X: f32 = 300.0;
 pub const PLAYER_SPEED_Y: f32 = 150.0;
+/// Distance the player keeps to walls and furniture behind it, in map cells.
+const PLAYER_MARGIN: f32 = 0.35;
 const STEP_INTERVAL: f32 = 0.3;
 const STEPS: [Sfx; 3] = [Sfx::Step1, Sfx::Step2, Sfx::Step3];
 
@@ -54,7 +56,7 @@ pub fn player_system(
     if player.state == PlayerState::Walk {
         let feet = transform.translation.truncate() + FEET_OFFSET;
         let can_stand = |pos: Vec2| {
-            walkable.is_walkable(pos)
+            walkable.is_free(pos, PLAYER_MARGIN)
                 && solids.iter().all(|(solid_transform, solid)| {
                     let solid_feet = solid_transform.translation.truncate()
                         + FEET_OFFSET * solid_transform.scale.y;

@@ -186,6 +186,7 @@ pub enum Node {
 
     Intro,
     Diary,
+    LockedDoor,
 
     // Bed
     Bed,
@@ -291,6 +292,10 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 .u("The Great Harvest is tonight! Be prepared...")
                 .n("You wake up with a start. Two glowing eyes are still burning in your mind.")
         }
+
+        Node::LockedDoor => s
+            .n("The door is locked. Another servant of Ulu lives here, probably preparing for the Great Harvest as well.")
+            .c("This is not my room."),
 
         Node::Diary => s
             .n("Your diary lies open on the crate next to your bed. The last entry is written in a hasty, shaky handwriting:")

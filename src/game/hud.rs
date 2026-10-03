@@ -38,6 +38,10 @@ impl ScreenFx {
     pub fn pulse(&mut self) {
         self.pulse = PULSE_SECS;
     }
+
+    pub fn is_black(&self) -> bool {
+        self.alpha >= 1.0
+    }
 }
 
 /// Whether the player is in a room without light.

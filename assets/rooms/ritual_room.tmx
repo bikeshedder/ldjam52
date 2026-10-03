@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<map version="1.9" tiledversion="1.9.2" orientation="isometric" renderorder="right-down" width="6" height="6" tilewidth="128" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="5">
+ <properties>
+  <property name="dark" type="bool" value="true" />
+ </properties>
+ <tileset firstgid="1" source="../tilesets/village_interiors.tsx" />
+ <tileset firstgid="337" source="../tilesets/floors.tsx" />
+ <tileset firstgid="346" source="../tilesets/walls.tsx" />
+ <tileset firstgid="354" source="../tilesets/windows.tsx" />
+ <tileset firstgid="365" source="../tilesets/doors.tsx" />
+ <layer id="1" name="Floor" width="6" height="6">
+  <data encoding="csv">
+338,338,338,338,338,0,
+338,338,338,338,338,0,
+338,338,338,338,338,0,
+338,338,338,338,338,0,
+338,338,338,338,338,0,
+338,338,338,338,338,0
+</data>
+ </layer>
+ <layer id="2" name="Carpet" width="6" height="6">
+  <data encoding="csv">
+0,0,0,0,0,0,
+0,0,0,0,0,0,
+0,0,144,142,0,0,
+0,0,143,145,0,0,
+0,0,0,0,0,0,
+0,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="3" name="Walls" width="6" height="6">
+  <data encoding="csv">
+348,348,348,348,348,0,
+348,0,0,0,0,0,
+348,0,0,0,0,0,
+348,0,0,0,0,0,
+348,0,0,0,0,0,
+348,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="4" name="Furniture" width="6" height="6">
+  <data encoding="csv">
+0,0,0,0,0,0,
+0,114,0,0,0,0,
+0,286,0,0,0,0,
+0,2147483654,0,0,0,0,
+0,0,0,0,0,253,
+0,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="5" name="Props" width="6" height="6">
+  <data encoding="csv">
+0,0,0,0,0,0,
+0,0,0,0,0,0,
+0,0,0,0,0,0,
+299,0,0,0,0,0,
+0,0,0,0,0,0,
+0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="6" name="Decoration" />
+ <objectgroup id="7" name="Objects">
+  <object id="1" name="dining_hall" type="door" x="256" y="256" width="64" height="64" />
+  <object id="2" name="dining_hall" type="spawn" x="224.0" y="288.0">
+   <point />
+  </object>
+  <object id="3" name="ritual" type="interactable" x="192.0" y="192.0">
+   <properties>
+    <property name="radius" type="float" value="130.0" />
+   </properties>
+   <point />
+  </object>
+  <object id="4" name="carpet" type="trip" x="128" y="128" width="128" height="128" />
+ </objectgroup>
+</map>

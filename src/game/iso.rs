@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 
-use crate::plugins::tiled::TiledMap;
+use crate::plugins::tiled::{TiledMap, is_flat_image};
 
 /// Offset from a character sprite's center to its feet.
 pub const FEET_OFFSET: Vec2 = Vec2::new(0.0, -56.0);
@@ -69,7 +69,13 @@ impl Walkable {
                         .get_tile()
                         .and_then(|t| t.image.as_ref().map(|i| i.source.clone()))
                         .unwrap_or_default();
-                    if !image.to_string_lossy().contains("Glow_Floor") {
+                    // Flat decoration, paintings hanging on the wall behind and
+                    // doors in front of walls don't block the cell.
+                    let image = image.to_string_lossy();
+                    if !(is_flat_image(&image)
+                        || image.contains("Painting")
+                        || image.contains("Door"))
+                    {
                         blocked[index] = true;
                     }
                 }
@@ -82,8 +88,25 @@ impl Walkable {
         }
     }
 
-    pub fn is_walkable(&self, pos: Vec2) -> bool {
-        let cell = world_to_cell(pos).round().as_ivec2();
+    /// Whether a character can stand at the given world position. It keeps
+    /// `margin` (in map cells) of distance to blocked cells behind it, so it doesn't
+    /// overlap walls and furniture drawn behind it. Things in front of the
+    /// character are drawn over it, so no distance is needed there.
+    pub fn is_free(&self, pos: Vec2, margin: f32) -> bool {
+        let center = world_to_cell(pos);
+        let diagonal = margin * std::f32::consts::FRAC_1_SQRT_2;
+        [
+            Vec2::ZERO,
+            Vec2::new(-margin, 0.0),
+            Vec2::new(0.0, -margin),
+            Vec2::new(-diagonal, -diagonal),
+        ]
+        .into_iter()
+        .all(|offset| self.is_walkable_cell(center + offset))
+    }
+
+    fn is_walkable_cell(&self, cell: Vec2) -> bool {
+        let cell = cell.round().as_ivec2();
         cell.x >= 0
             && cell.y >= 0
             && cell.x < self.width

@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<map version="1.9" tiledversion="1.9.2" orientation="isometric" renderorder="right-down" width="10" height="10" tilewidth="128" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="9">
+ <tileset firstgid="1" source="../tilesets/village_interiors.tsx" />
+ <tileset firstgid="337" source="../tilesets/floors.tsx" />
+ <tileset firstgid="346" source="../tilesets/walls.tsx" />
+ <tileset firstgid="354" source="../tilesets/windows.tsx" />
+ <tileset firstgid="365" source="../tilesets/doors.tsx" />
+ <layer id="1" name="Floor" width="10" height="10">
+  <data encoding="csv">
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344,
+344,344,344,344,344,344,344,344,344,344
+</data>
+ </layer>
+ <layer id="2" name="Carpet" width="10" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,179,182,182,182,180,0,0,
+0,0,0,181,176,176,176,178,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="3" name="Walls" width="10" height="10">
+  <data encoding="csv">
+348,348,348,348,348,348,348,348,348,348,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0,
+348,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="4" name="Furniture" width="10" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,
+0,197,0,298,298,298,298,0,2147483901,0,
+0,0,2147483946,2147483865,2147483864,2147483864,2147483866,2147483945,0,0,
+0,253,0,297,297,297,297,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,117,0,0,0,0,0,0,0,0,
+0,2147483946,0,0,0,0,0,0,0,0,
+0,217,0,0,0,0,0,298,0,100,
+0,216,0,0,0,0,2147483946,217,0,0,
+0,218,297,0,2147483655,0,0,218,2147483945,0
+</data>
+ </layer>
+ <layer id="5" name="Props" width="10" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,
+0,0,246,0,0,241,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,241,0,
+0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,246,0,0,0,
+0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="6" name="Decoration">
+  <object id="1" gid="243" x="301.3299999999999" y="161.32999999999993" width="148" height="164" />
+  <object id="2" gid="245" x="452.0" y="506.6700000000001" width="148" height="164" />
+ </objectgroup>
+ <objectgroup id="7" name="Objects">
+  <object id="3" name="library" type="door" x="512" y="64" width="64" height="64" />
+  <object id="4" name="library" type="spawn" x="544.0" y="160.0">
+   <point />
+  </object>
+  <object id="5" name="ritual_room" type="door" x="64" y="192" width="64" height="64" />
+  <object id="6" name="ritual_room" type="spawn" x="160.0" y="224.0">
+   <point />
+  </object>
+  <object id="7" name="table" type="interactable" x="288.0" y="185.5999999999999">
+   <properties>
+    <property name="radius" type="float" value="150.0" />
+   </properties>
+   <point />
+  </object>
+  <object id="8" name="fireplace" type="interactable" x="121.59999999999991" y="352.0">
+   <properties>
+    <property name="radius" type="float" value="120.0" />
+   </properties>
+   <point />
+  </object>
+ </objectgroup>
+</map>

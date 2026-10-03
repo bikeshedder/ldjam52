@@ -8,6 +8,7 @@ pub mod hud;
 pub mod input;
 pub mod iso;
 pub mod progress;
+pub mod rooms;
 pub mod script;
 pub mod world;
 
@@ -26,6 +27,8 @@ pub enum Phase {
     Exploring,
     Dialogue,
     Paused,
+    /// Moving to another room.
+    Transition,
 }
 
 pub struct GamePlugin;
@@ -40,6 +43,7 @@ impl Plugin for GamePlugin {
                 dialogue::DialoguePlugin,
                 ending::EndingPlugin,
                 hud::HudPlugin,
+                rooms::RoomsPlugin,
                 world::WorldPlugin,
             ))
             .add_systems(OnEnter(AppState::Game), start_intro)
