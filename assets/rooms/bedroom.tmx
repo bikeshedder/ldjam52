@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<map version="1.9" tiledversion="1.9.2" orientation="isometric" renderorder="right-down" width="7" height="5" tilewidth="128" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="7">
+<map version="1.9" tiledversion="1.9.2" orientation="isometric" renderorder="right-down" width="7" height="5" tilewidth="128" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="8">
  <tileset firstgid="1" source="../tilesets/village_interiors.tsx" />
  <tileset firstgid="337" source="../tilesets/floors.tsx" />
  <tileset firstgid="346" source="../tilesets/walls.tsx" />
@@ -35,7 +35,7 @@
  <layer id="4" name="Furniture" width="7" height="5">
   <data encoding="csv">
 0,0,0,0,0,0,0,
-0,191,0,101,0,0,0,
+0,191,0,0,101,0,0,
 0,0,0,0,0,0,0,
 0,0,0,0,0,0,253,
 0,0,0,0,0,0,0
@@ -43,33 +43,35 @@
  </layer>
  <layer id="5" name="Props" width="7" height="5">
   <data encoding="csv">
-0,2147484003,0,0,0,0,0,
+0,0,2147484003,0,0,0,0,
 0,0,0,0,0,0,0,
-0,88,2147483982,0,0,0,0,
+0,88,0,2147483982,0,0,0,
 0,0,0,0,0,0,0,
 0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="6" name="Decoration" />
+ <objectgroup id="6" name="Decoration">
+  <object id="1" gid="240" x="244.5" y="50.1667" width="156.667" height="164.667" />
+ </objectgroup>
  <objectgroup id="7" name="Objects">
-  <object id="1" name="hall" type="door" x="320" y="192" width="64" height="64" />
-  <object id="2" name="hall" type="spawn" x="288.0" y="224.0">
+  <object id="2" name="hall" type="door" x="320" y="192" width="64" height="64" />
+  <object id="3" name="hall" type="spawn" x="288.0" y="224.0">
    <point />
   </object>
-  <object id="3" name="start" type="spawn" x="224.0" y="224.0">
+  <object id="4" name="start" type="spawn" x="224.0" y="224.0">
    <point />
   </object>
-  <object id="4" name="bed" type="interactable" x="64" y="128" width="64" height="64">
+  <object id="5" name="bed" type="interactable" x="64" y="128" width="64" height="64">
    <properties>
     <property name="radius" type="float" value="120.0" />
    </properties>
   </object>
-  <object id="5" name="mirror" type="interactable" x="64" y="0" width="64" height="64">
+  <object id="6" name="mirror" type="interactable" x="128" y="0" width="64" height="64">
    <properties>
     <property name="radius" type="float" value="110.0" />
    </properties>
   </object>
-  <object id="6" name="diary" type="interactable" x="192" y="64" width="64" height="64">
+  <object id="7" name="diary" type="interactable" x="256" y="64" width="64" height="64">
    <properties>
     <property name="radius" type="float" value="100.0" />
    </properties>
