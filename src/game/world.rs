@@ -97,7 +97,7 @@ struct Tint(Color);
 struct Librarian {
     /// Prevents the librarian from addressing the player again right away.
     cooldown: bool,
-    /// The player is talking to the librarian from behind, so he doesn't turn around.
+    /// The player sneaked up on the librarian with a knife, so he doesn't turn around.
     unaware: bool,
 }
 
@@ -561,7 +561,9 @@ fn interact(
     if player.input.interact {
         if let Some(librarian) = &mut librarian {
             librarian.cooldown = true;
-            librarian.unaware = behind;
+            // He only stays unaware while the player can still stab him in the
+            // back. Otherwise he notices the player and turns around.
+            librarian.unaware = behind && !progress.librarian_met && progress.has(Item::Knife);
         }
         dialogue.write(StartDialogue(node));
     }
