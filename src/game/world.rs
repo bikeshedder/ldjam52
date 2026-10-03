@@ -94,6 +94,8 @@ struct Librarian {
     facing: Vec2,
     /// Prevents the librarian from addressing the player again right away.
     cooldown: bool,
+    /// The player is talking to the librarian from behind, so he doesn't turn around.
+    unaware: bool,
 }
 
 #[derive(Component)]
@@ -132,6 +134,7 @@ impl Plugin for WorldPlugin {
                 Update,
                 (
                     spawn_room_contents.run_if(on_message::<RoomSpawned>),
+                    remove_librarian.run_if(in_state(Phase::Exploring)),
                     (librarian_patrol, dark_room, interact)
                         .chain()
                         .after(crate::systems::input::player_input)
@@ -141,7 +144,6 @@ impl Plugin for WorldPlugin {
                         update_depth,
                         update_darkness,
                         update_world_visuals,
-                        remove_librarian,
                         face_player,
                         update_highlight,
                     )
@@ -298,6 +300,7 @@ fn spawn_room_contents(
                             wait: 0.0,
                             facing: Vec2::new(-1.0, -0.5).normalize(),
                             cooldown: false,
+                            unaware: false,
                         },
                         Tint(Color::srgb(0.7, 0.72, 0.8)),
                         Solid { radius: 35.0 },
@@ -382,12 +385,12 @@ fn update_highlight(
     };
     for entity in &highlighted {
         if !targets.contains(&entity) {
-            commands.entity(entity).remove::<Highlighted>();
+            commands.entity(entity).try_remove::<Highlighted>();
         }
     }
     for entity in targets {
         if !highlighted.contains(entity) {
-            commands.entity(entity).insert(Highlighted);
+            commands.entity(entity).try_insert(Highlighted);
         }
     }
 }
@@ -401,7 +404,7 @@ fn librarian_from_behind(librarian: &Librarian, librarian_pos: Vec2, player_pos:
 
 fn interact(
     player: Single<(&Player, &Transform)>,
-    interactables: Query<(Entity, &Interactable, &Transform, Option<&Librarian>)>,
+    mut interactables: Query<(Entity, &Interactable, &Transform, Option<&mut Librarian>)>,
     progress: Res<Progress>,
     mut prompt: ResMut<Prompt>,
     mut focus: ResMut<Focus>,
@@ -410,8 +413,12 @@ fn interact(
     let (player, player_transform) = *player;
     let player_pos = feet(player_transform);
     let nearest = interactables
-        .iter()
-        .filter(|(_, interactable, ..)| interactable.target != Target::Ritual || progress.room_lit)
+        .iter_mut()
+        .filter(|(_, interactable, ..)| match interactable.target {
+            Target::Ritual => progress.room_lit,
+            Target::Librarian => !progress.librarian_gone,
+            _ => true,
+        })
         .map(|(entity, interactable, transform, librarian)| {
             let pos = if librarian.is_some() || interactable.target == Target::Magister {
                 feet(transform)
@@ -433,11 +440,13 @@ fn interact(
     if focus.0 != focused {
         focus.0 = focused;
     }
-    let Some((_, interactable, pos, librarian, _)) = nearest else {
+    let Some((_, interactable, pos, mut librarian, _)) = nearest else {
         prompt.0 = None;
         return;
     };
-    let behind = librarian.is_some_and(|l| librarian_from_behind(l, pos, player_pos));
+    let behind = librarian
+        .as_ref()
+        .is_some_and(|l| librarian_from_behind(l, pos, player_pos));
     let (label, node) = match interactable.target {
         Target::Bed => ("Examine the bed", Node::Bed),
         Target::Mirror => ("Look out of the window", Node::Mirror),
@@ -456,6 +465,10 @@ fn interact(
     };
     prompt.0 = Some(label.to_string());
     if player.input.interact {
+        if let Some(librarian) = &mut librarian {
+            librarian.cooldown = true;
+            librarian.unaware = behind;
+        }
         dialogue.write(StartDialogue(node));
     }
 }
@@ -474,7 +487,7 @@ fn librarian_patrol(
     progress: Res<Progress>,
     mut dialogue: MessageWriter<StartDialogue>,
 ) {
-    let Some(librarian) = librarian else {
+    let Some(librarian) = librarian.filter(|_| !progress.librarian_gone) else {
         return;
     };
     let (mut librarian, mut transform, mut animation, mut sprite) = librarian.into_inner();
@@ -488,12 +501,14 @@ fn librarian_patrol(
     } else if distance < LIBRARIAN_SIGHT {
         if !librarian_from_behind(&librarian, pos, player_pos) {
             librarian.cooldown = true;
+            librarian.unaware = false;
             dialogue.write(StartDialogue(Node::Librarian));
             return;
         }
         if distance < 80.0 && !progress.librarian_met && progress.has(Item::Knife) {
             // The player ran into the librarian from behind with a knife in hand.
             librarian.cooldown = true;
+            librarian.unaware = true;
             dialogue.write(StartDialogue(Node::LibrarianBack));
             return;
         }
@@ -544,7 +559,8 @@ fn face_player(
     let talking = *phase.get() == Phase::Dialogue;
     for (transform, mut animation, mut sprite, librarian) in &mut npcs {
         let to_player = player.translation.truncate() - transform.translation.truncate();
-        if talking && to_player.length() < 250.0 {
+        let unaware = librarian.as_ref().is_some_and(|l| l.unaware);
+        if talking && to_player.length() < 250.0 && !unaware {
             animation.start(if to_player.y > 0.0 {
                 "idle_up"
             } else {
@@ -562,13 +578,14 @@ fn face_player(
     }
 }
 
+/// Removes the librarian once he is gone. This happens after the dialogue in
+/// which he died or left.
 fn remove_librarian(
     mut commands: Commands,
     progress: Res<Progress>,
-    phase: Res<State<Phase>>,
     librarian: Query<Entity, With<Librarian>>,
 ) {
-    if progress.librarian_gone && *phase.get() == Phase::Exploring {
+    if progress.librarian_gone {
         for entity in &librarian {
             commands.entity(entity).despawn();
         }
