@@ -25,7 +25,7 @@ fn spawn_ending_screen(
     meta: Res<Meta>,
 ) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    let text = |content: String, size: f32, color: Color| {
+    let text = |content: &str, size: f32, color: Color| {
         (
             Text::new(content),
             TextFont {
@@ -38,27 +38,10 @@ fn spawn_ending_screen(
         )
     };
     let gray = Color::srgb(0.55, 0.55, 0.55);
+    let gold = Color::srgb(0.95, 0.85, 0.55);
     let title = progress.ending.map_or("The End", |ending| ending.title());
 
-    let achievements: Vec<String> = Achievement::ALL
-        .iter()
-        .map(|achievement| {
-            let unlocked = meta.achievements.contains(achievement);
-            let name = if unlocked || !achievement.secret() {
-                achievement.title()
-            } else {
-                "???"
-            };
-            let new = if progress.new_achievements.contains(achievement) {
-                "  (new!)"
-            } else {
-                ""
-            };
-            format!("{} {name}{new}", if unlocked { "[x]" } else { "[ ]" })
-        })
-        .collect();
-
-    commands
+    let root = commands
         .spawn((
             Node {
                 width: Val::Percent(100.0),
@@ -66,42 +49,141 @@ fn spawn_ending_screen(
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                row_gap: Val::Px(14.0),
+                row_gap: Val::Px(10.0),
                 ..default()
             },
             BackgroundColor(Color::BLACK),
             DespawnOnExit(AppState::Ending),
         ))
-        .with_children(|parent| {
-            parent.spawn(text("The End".into(), 26.0, gray));
-            parent.spawn(text(title.into(), 60.0, Color::srgb(0.9, 0.2, 0.15)));
-            parent.spawn(text(
-                format!(
-                    "Achievements: {} / {}      Cats of Ulu: {} / {CAT_COUNT}",
-                    meta.achievements.len(),
-                    Achievement::ALL.len(),
-                    meta.cats.len(),
-                ),
-                26.0,
-                Color::srgb(0.95, 0.85, 0.55),
+        .id();
+    commands.spawn((text("The End", 24.0, gray), ChildOf(root)));
+    commands.spawn((
+        text(title, 54.0, Color::srgb(0.9, 0.2, 0.15)),
+        ChildOf(root),
+    ));
+
+    // The rating of the ritual and the reasons for it.
+    let ritual = commands
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(6.0),
+                margin: UiRect::vertical(Val::Px(8.0)),
+                padding: UiRect::axes(Val::Px(28.0), Val::Px(14.0)),
+                border: UiRect::all(Val::Px(2.0)),
+                border_radius: BorderRadius::all(Val::Px(10.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.07, 0.05, 0.08)),
+            BorderColor::all(Color::srgb(0.45, 0.12, 0.1)),
+            ChildOf(root),
+        ))
+        .id();
+    commands.spawn((text("Your ritual", 20.0, gold), ChildOf(ritual)));
+    match progress.ritual_stars() {
+        Some(stars) => {
+            let row = commands
+                .spawn((
+                    Node {
+                        column_gap: Val::Px(4.0),
+                        ..default()
+                    },
+                    ChildOf(ritual),
+                ))
+                .id();
+            for i in 0..5 {
+                let icon = if i < stars {
+                    "icons/star.png"
+                } else {
+                    "icons/star_empty.png"
+                };
+                commands.spawn((
+                    ImageNode::new(asset_server.load(icon)),
+                    Node {
+                        width: Val::Px(40.0),
+                        height: Val::Px(40.0),
+                        ..default()
+                    },
+                    ChildOf(row),
+                ));
+            }
+            let notes = progress.ritual_assessment();
+            let list = commands
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(3.0),
+                        ..default()
+                    },
+                    ChildOf(ritual),
+                ))
+                .id();
+            for note in notes {
+                let (sign, color) = if note.change > 0 {
+                    ("-", Color::srgb(0.9, 0.35, 0.3))
+                } else {
+                    ("+", Color::srgb(0.45, 0.8, 0.4))
+                };
+                commands.spawn((
+                    Node {
+                        column_gap: Val::Px(8.0),
+                        ..default()
+                    },
+                    ChildOf(list),
+                    children![
+                        text(sign, 18.0, color),
+                        text(note.text, 18.0, Color::srgb(0.85, 0.85, 0.85)),
+                    ],
+                ));
+            }
+        }
+        None => {
+            commands.spawn((
+                text("The ritual was never performed.", 18.0, gray),
+                ChildOf(ritual),
             ));
-            parent.spawn(text(
-                achievements.join("\n"),
-                20.0,
-                Color::srgb(0.85, 0.85, 0.85),
-            ));
-            parent.spawn(text(
-                "ULU - The Harvest\nThanks for playing!".into(),
-                22.0,
-                gray,
-            ));
-            parent.spawn((
-                text(String::new(), 18.0, gray),
-                DeviceText(|device| {
-                    format!("{} Return to the main menu", device.label(Action::Confirm))
-                }),
-            ));
-        });
+        }
+    }
+
+    commands.spawn((
+        text(
+            &format!(
+                "Achievements: {} / {}      Cats of Ulu: {} / {CAT_COUNT}",
+                meta.achievements.len(),
+                Achievement::ALL.len(),
+                meta.cats.len(),
+            ),
+            20.0,
+            gold,
+        ),
+        ChildOf(root),
+    ));
+    // The full list is in the main menu, only show what was unlocked now.
+    if !progress.new_achievements.is_empty() {
+        let names: Vec<_> = progress
+            .new_achievements
+            .iter()
+            .map(|achievement| achievement.title())
+            .collect();
+        commands.spawn((
+            text(&format!("New: {}", names.join(", ")), 18.0, Color::WHITE),
+            ChildOf(root),
+        ));
+    }
+    commands.spawn((
+        text("ULU - The Harvest\nThanks for playing!", 20.0, gray),
+        Node {
+            margin: UiRect::top(Val::Px(8.0)),
+            ..default()
+        },
+        ChildOf(root),
+    ));
+    commands.spawn((
+        text("", 18.0, gray),
+        DeviceText(|device| format!("{} Return to the main menu", device.label(Action::Confirm))),
+        ChildOf(root),
+    ));
 }
 
 fn leave_ending(
