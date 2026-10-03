@@ -1,0 +1,15 @@
+# The inventory is hidden while Ulu speaks to the player at the start and
+# appears once the player can move.
+- wait: 0.1
+- start_game
+- wait: 0.5
+- screenshot: intro_without_inventory
+- press: Space
+- wait: 1.0
+- press: Space
+- wait: 1.0
+- press: Space
+- wait: 1.0
+- wait: 2.0
+- expect_phase: Exploring
+- screenshot: exploring_with_inventory

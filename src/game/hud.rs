@@ -57,6 +57,10 @@ struct PromptText;
 /// The list of items in the inventory.
 #[derive(Component)]
 struct InventoryList;
+
+/// The framed inventory panel. Hidden until the player gets control.
+#[derive(Component)]
+struct InventoryPanel;
 #[derive(Component)]
 struct PauseMenu;
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
@@ -87,7 +91,16 @@ impl Plugin for HudPlugin {
                 )
                     .run_if(in_state(AppState::Game)),
             )
-            .add_systems(OnEnter(Phase::Paused), spawn_pause_menu);
+            .add_systems(OnEnter(Phase::Paused), spawn_pause_menu)
+            // The game briefly starts in `Exploring` before the intro dialogue,
+            // so the inventory appears when a dialogue ends instead.
+            .add_systems(
+                OnTransition {
+                    exited: Phase::Dialogue,
+                    entered: Phase::Exploring,
+                },
+                show_inventory,
+            );
     }
 }
 
@@ -171,6 +184,9 @@ fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
                 BackgroundColor(Color::srgba(0.05, 0.03, 0.06, 0.8)),
                 BorderColor::all(Color::srgb(0.45, 0.12, 0.1)),
+                // Ulu speaks to the player first.
+                Visibility::Hidden,
+                InventoryPanel,
                 children![
                     (
                         Text::new("Inventory"),
@@ -254,6 +270,13 @@ fn update_action_bar(
     };
     if prompt_text.0 != prompt {
         prompt_text.0 = prompt;
+    }
+}
+
+/// Shows the inventory once the player can control the character.
+fn show_inventory(mut panel: Query<&mut Visibility, With<InventoryPanel>>) {
+    for mut visibility in &mut panel {
+        visibility.set_if_neq(Visibility::Inherited);
     }
 }
 
