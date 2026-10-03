@@ -1,0 +1,79 @@
+# Screenshots of the highlights of the game, e.g. for a press kit. Run it
+# without a savegame.yaml, as the ending depends on earlier games.
+- start_game
+- wait: 1.5
+- screenshot: 01_ulu_calls
+- skip_dialogues: true
+- wait: 1.0
+- skip_dialogues: false
+
+# The librarian, seen from behind with a knife in the pocket
+- give: Knife
+- enter_room: [library, hall]
+- teleport: [8.0, 2.5]
+- wait: 1.5
+- start_dialogue: LibrarianBack
+- press: Space
+- wait: 0.5
+- screenshot: 02_librarian_from_behind
+- skip_dialogues: true
+- press: Escape
+- wait: 0.5
+
+# Asking the magister for help
+- enter_room: [study, library]
+- teleport: [3.5, 6.5]
+- wait: 1.5
+- skip_dialogues: false
+- start_dialogue: MagGreet
+- press: Space   # reveal the whole line
+- press: Space   # continue
+- press: Space   # reveal the whole line
+- wait: 0.5
+- screenshot: 03_magister
+- skip_dialogues: true
+- press: Escape
+- wait: 0.5
+
+# The dining hall with the fire burning
+- start_dialogue: FireIgnite
+- start_dialogue: TableTakeCheese
+- enter_room: [dining_hall, library]
+- teleport: [4.0, 4.5]
+- wait: 1.5
+- screenshot: 04_dining_hall
+
+# The dark ritual room in candle light
+- enter_room: [ritual_room, dining_hall]
+- teleport: [4.0, 1.5]
+- wait: 1.5
+- screenshot: 05_ritual_room_dark
+
+# The prepared ritual
+- start_dialogue: BedCut          # perfect feather
+- start_dialogue: FireSoot
+- start_dialogue: MirrorQuiet     # red herring
+- start_dialogue: CarpetRollIn
+- start_dialogue: FloorHerring
+- start_dialogue: PlaceFeather
+- start_dialogue: PlaceCandle
+- start_dialogue: PlaceIncense
+- teleport: [1.5, 2.5]
+- wait: 1.5
+- screenshot: 06_ritual_prepared
+
+# Summoning Ulu
+- skip_dialogues: false
+- start_dialogue: Summon
+- press: Space
+- wait: 0.5
+- screenshot: 07_summoning
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- wait: 1.5
+- screenshot: 08_ending

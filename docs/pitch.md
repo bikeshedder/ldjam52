@@ -18,6 +18,19 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 - **A ritual rating instead of pass/fail**: The ending screen gives the ritual a star rating and explains why Ulu was pleased or disappointed.
 - **Built for short sessions**: A single run is short, and the game is designed to be played many times.
 
+## Screenshots
+
+| | |
+| :---: | :---: |
+| ![Ulu calls in a dream](screenshots/01_ulu_calls.png) | ![The librarian, seen from behind](screenshots/02_librarian_from_behind.png) |
+| *Ulu calls in a dream* | *A knife in your pocket opens new options* |
+| ![Asking the magister for help](screenshots/03_magister.png) | ![The dining hall](screenshots/04_dining_hall.png) |
+| *Asking the magister for help* | *Exploring the cult manor* |
+| ![The dark ritual room](screenshots/05_ritual_room_dark.png) | ![The prepared ritual](screenshots/06_ritual_prepared.png) |
+| *The ritual room, lit only by your candle* | *The ritual is prepared* |
+| ![Summoning Ulu](screenshots/07_summoning.png) | ![The ending screen](screenshots/08_ending.png) |
+| *Summoning Ulu* | *Ulu rates the ritual* |
+
 ## Fact Sheet
 
 | | |
