@@ -1,5 +1,6 @@
-// Darkness with a flickering, warm circle of candle light. The circle is
-// squashed vertically to lie flat on the isometric floor.
+// A dark vignette around the candle light. Inside the light the scene is shown
+// unchanged, towards the edge it fades to darkness. The light is squashed
+// vertically to lie flat on the isometric floor and flickers like a flame.
 
 #import bevy_sprite::{
     mesh2d_vertex_output::VertexOutput,
@@ -21,21 +22,10 @@ fn flicker(t: f32) -> f32 {
 
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
-    let t = globals.time;
-    let center = light.params.xy;
-    let radius = light.params.z * (1.0 + 0.05 * flicker(t));
-    let darkness = light.params.w;
-
-    let offset = mesh.world_position.xy - center;
+    let radius = light.params.z * (1.0 + 0.04 * flicker(globals.time));
+    let offset = mesh.world_position.xy - light.params.xy;
     let distance = length(vec2(offset.x, offset.y * 2.0)) / max(radius, 1.0);
-
-    // Bright core, soft falloff towards the edge of the light.
-    let lit = 1.0 - smoothstep(0.3, 1.0, distance);
-    let brightness = lit * (0.93 + 0.07 * flicker(t * 1.3 + 2.0));
-    let shadow = darkness * (1.0 - brightness);
-    // A slight warm tint of the candle light, strongest close to the flame.
-    let tint = darkness * 0.14 * lit * lit;
-    let alpha = shadow + tint;
-    let color = vec3(1.0, 0.6, 0.25) * tint / max(alpha, 0.001);
-    return vec4(color, alpha);
+    // Fully lit in the center, smoothly darker towards the edge.
+    let shadow = smoothstep(0.25, 1.0, distance);
+    return vec4(0.0, 0.0, 0.0, light.params.w * shadow);
 }
