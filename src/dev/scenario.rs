@@ -20,7 +20,7 @@
 //! - hold: [[KeyD, KeyS], 0.4]      # keys, seconds
 //! - screenshot: name               # saved in the screenshot directory
 //! - expect_room: hall
-//! - expect_phase: Exploring
+//! - expect_phase: Exploring       # or None outside of the game
 //! - log                            # room, phase and position of the player
 //! - exit
 //! ```
@@ -296,7 +296,9 @@ fn play_scenario(
                 scenario.wait_until = f32::MAX;
                 return;
             }
-            Step::ExpectPhase(expected) if format!("{phase:?}") != format!("Some({expected})") => {
+            Step::ExpectPhase(expected)
+                if phase.map_or("None".to_string(), |phase| format!("{phase:?}")) != expected =>
+            {
                 exit.write(fail(format!("expected phase {expected}, but is {phase:?}")));
                 scenario.wait_until = f32::MAX;
                 return;
