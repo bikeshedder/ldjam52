@@ -10,7 +10,7 @@ use super::{
     iso::{FEET_OFFSET, cell_center, character_translation, depth_at},
     outline::Highlighted,
     progress::{Carpet, Item, Progress, RitualCircle},
-    rooms::{Area, Room, RoomEntity, RoomSpawned, RoomSpawner, START_ROOM, START_SPAWN},
+    rooms::{Area, EnterRoom, Room, RoomEntity, RoomSpawned, RoomSpawner, START_ROOM, START_SPAWN},
     script::Node,
 };
 use crate::{
@@ -27,6 +27,7 @@ use crate::{
 const LIBRARIAN_SPEED: f32 = 70.0;
 const LIBRARIAN_SIGHT: f32 = 230.0;
 const DEFAULT_RADIUS: f32 = 120.0;
+const DOOR_RADIUS: f32 = 100.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Target {
@@ -39,6 +40,8 @@ pub enum Target {
     Ritual,
     Magister,
     Librarian,
+    /// The door with the given index in [`Room::doors`].
+    Door(usize),
 }
 
 impl Target {
@@ -261,6 +264,19 @@ fn spawn_room_contents(
             DespawnOnExit(AppState::Game),
         ));
     }
+    for (index, door) in room.doors.iter().enumerate() {
+        commands.spawn((
+            Transform::from_translation(cell_center(door.area.center()).extend(0.0)),
+            Interactable {
+                target: Target::Door(index),
+                radius: DOOR_RADIUS,
+                // Doors at the front of a room stand next to their area.
+                area: Some(door.area.expanded(1.0)),
+            },
+            RoomEntity,
+            DespawnOnExit(AppState::Game),
+        ));
+    }
     for npc in &room.npcs {
         let translation = character_translation(npc.path[0]);
         match npc.name.as_str() {
@@ -370,12 +386,14 @@ fn update_highlight(
         Some((_, (interactable, false))) => interactable
             .area
             .map(|area| {
+                let is_door = matches!(interactable.target, Target::Door(_));
                 tiles
                     .iter()
                     .filter(|(_, tile, visibility)| {
                         area.contains_cell(tile.cell)
                             && HIGHLIGHT_LAYERS.contains(&tile.layer.as_str())
                             && **visibility != Visibility::Hidden
+                            && (!is_door || tile.image.contains("Door"))
                     })
                     .map(|(entity, ..)| entity)
                     .collect()
@@ -402,13 +420,16 @@ fn librarian_from_behind(librarian: &Librarian, librarian_pos: Vec2, player_pos:
         < -0.2
 }
 
+#[allow(clippy::too_many_arguments)]
 fn interact(
     player: Single<(&Player, &Transform)>,
     mut interactables: Query<(Entity, &Interactable, &Transform, Option<&mut Librarian>)>,
     progress: Res<Progress>,
     mut prompt: ResMut<Prompt>,
     mut focus: ResMut<Focus>,
+    room: Res<Room>,
     mut dialogue: MessageWriter<StartDialogue>,
+    mut enter: MessageWriter<EnterRoom>,
 ) {
     let (player, player_transform) = *player;
     let player_pos = feet(player_transform);
@@ -447,6 +468,23 @@ fn interact(
     let behind = librarian
         .as_ref()
         .is_some_and(|l| librarian_from_behind(l, pos, player_pos));
+    if let Target::Door(index) = interactable.target {
+        prompt.0 = Some("Open the door".to_string());
+        if player.input.interact {
+            match room.doors.get(index).and_then(|door| door.target.clone()) {
+                Some(target) => {
+                    enter.write(EnterRoom {
+                        room: target,
+                        spawn: room.name.clone(),
+                    });
+                }
+                None => {
+                    dialogue.write(StartDialogue(Node::LockedDoor));
+                }
+            }
+        }
+        return;
+    }
     let (label, node) = match interactable.target {
         Target::Bed => ("Examine the bed", Node::Bed),
         Target::Mirror => ("Look out of the window", Node::Mirror),
@@ -462,6 +500,7 @@ fn interact(
         Target::Magister => ("Talk to the magister", Node::Magister),
         Target::Librarian if behind => ("Approach the librarian from behind", Node::LibrarianBack),
         Target::Librarian => ("Talk to the librarian", Node::Librarian),
+        Target::Door(_) => unreachable!("handled above"),
     };
     prompt.0 = Some(label.to_string());
     if player.input.interact {

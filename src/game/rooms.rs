@@ -3,8 +3,9 @@
 //!
 //! Each map has an object layer called `Objects` describing the room:
 //!
-//! * `door` (rectangle): Entering it leads to the room named like the object.
-//!   Doors with the `locked` property set to `true` can't be opened.
+//! * `door` (rectangle): Opening it from within the rectangle's area leads to the
+//!   room named like the object. Doors with the `locked` property set to `true`
+//!   can't be opened.
 //! * `spawn` (point): Where the player appears when coming from the room named
 //!   like the object. `start` is used when starting a new game.
 //! * `interactable` (point or rectangle): Something the player can interact
@@ -20,10 +21,8 @@ use bevy::{platform::collections::HashMap, prelude::*};
 
 use super::{
     Phase,
-    dialogue::StartDialogue,
     hud::ScreenFx,
-    iso::{FEET_OFFSET, Walkable, character_translation, world_to_cell},
-    script::Node,
+    iso::{Walkable, character_translation, world_to_cell},
 };
 use crate::{components::player::Player, plugins::tiled::TiledMap};
 
@@ -71,6 +70,13 @@ impl Area {
     pub fn contains_cell(&self, cell: IVec2) -> bool {
         let cell = cell.as_vec2();
         cell.cmpge(self.min).all() && cell.cmplt(self.max).all()
+    }
+
+    pub fn expanded(&self, cells: f32) -> Self {
+        Self {
+            min: self.min - cells,
+            max: self.max + cells,
+        }
     }
 
     pub fn center(&self) -> Vec2 {
@@ -203,10 +209,6 @@ pub struct EnterRoom {
 #[derive(Resource, Default)]
 struct Transition(Option<EnterRoom>);
 
-/// Doors only work after the player stepped off the door they arrived through.
-#[derive(Resource, Default)]
-struct DoorsArmed(bool);
-
 /// Sent after a room was spawned.
 #[derive(Message, Clone, Debug)]
 pub struct RoomSpawned;
@@ -219,49 +221,15 @@ impl Plugin for RoomsPlugin {
             .add_message::<RoomSpawned>()
             .init_resource::<Room>()
             .init_resource::<Transition>()
-            .init_resource::<DoorsArmed>()
             .add_systems(
                 Update,
                 (
-                    use_doors.run_if(in_state(Phase::Exploring)),
                     start_transition,
                     finish_transition.run_if(in_state(Phase::Transition)),
                 )
                     .chain()
                     .run_if(in_state(crate::AppState::Game)),
             );
-    }
-}
-
-fn use_doors(
-    room: Res<Room>,
-    player: Single<&Transform, With<Player>>,
-    mut armed: ResMut<DoorsArmed>,
-    mut enter: MessageWriter<EnterRoom>,
-    mut dialogue: MessageWriter<StartDialogue>,
-) {
-    let feet = player.translation.truncate() + FEET_OFFSET;
-    let door = room
-        .doors
-        .iter()
-        .find(|door| door.area.contains_world(feet));
-    match door {
-        Some(door) if armed.0 => {
-            armed.0 = false;
-            match &door.target {
-                Some(target) => {
-                    enter.write(EnterRoom {
-                        room: target.clone(),
-                        spawn: room.name.clone(),
-                    });
-                }
-                None => {
-                    dialogue.write(StartDialogue(Node::LockedDoor));
-                }
-            }
-        }
-        Some(_) => {}
-        None => armed.0 = true,
     }
 }
 
@@ -304,7 +272,6 @@ pub struct RoomSpawner<'w, 's> {
     room_entities: Query<'w, 's, Entity, With<RoomEntity>>,
     player: Query<'w, 's, &'static mut Transform, With<Player>>,
     room: ResMut<'w, Room>,
-    armed: ResMut<'w, DoorsArmed>,
     spawned: MessageWriter<'w, RoomSpawned>,
 }
 
@@ -333,8 +300,6 @@ impl RoomSpawner<'_, '_> {
         for mut transform in &mut self.player {
             transform.translation = character_translation(spawn_cell);
         }
-        // The player might arrive standing in a door.
-        self.armed.0 = false;
         *self.room = room;
         self.spawned.write(RoomSpawned);
     }
