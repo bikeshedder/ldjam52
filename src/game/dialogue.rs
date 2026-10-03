@@ -26,7 +26,11 @@ pub struct Dialogue {
     /// The line currently on screen. Kept when entering a scene without lines.
     shown: Option<Line>,
     revealed: f32,
-    selected: usize,
+    /// The selected answer. Nothing is selected initially, so pressing the
+    /// confirm key to skip the text never picks an answer by accident.
+    selected: Option<usize>,
+    /// The player tried to confirm without selecting an answer.
+    needs_selection: bool,
     /// Incremented whenever the displayed choices change.
     choices_version: u32,
 }
@@ -61,7 +65,7 @@ struct SpeakerText;
 #[derive(Component)]
 struct BodyText;
 #[derive(Component)]
-struct ContinueHint;
+struct Hint;
 #[derive(Component)]
 struct ChoiceList(u32);
 #[derive(Component)]
@@ -81,7 +85,7 @@ impl Plugin for DialoguePlugin {
                     (dialogue_input, reveal_text)
                         .chain()
                         .run_if(in_state(Phase::Dialogue)),
-                    (update_text, update_choices, style_choices)
+                    (update_text, update_hint, update_choices, style_choices)
                         .chain()
                         .run_if(in_state(AppState::Game)),
                 )
@@ -163,7 +167,8 @@ impl<'a> Runner<'a> {
             }
             self.dialogue.line = 0;
             self.dialogue.revealed = 0.0;
-            self.dialogue.selected = 0;
+            self.dialogue.selected = None;
+            self.dialogue.needs_selection = false;
             self.dialogue.choices_version += 1;
             if let Some(line) = scene.lines.first() {
                 self.dialogue.shown = Some(line.clone());
@@ -182,7 +187,7 @@ impl<'a> Runner<'a> {
             Next::End => self.close(),
             Next::Goto(node) => self.enter(node),
             Next::Choices(choices) => {
-                if let Some(choice) = choices.get(self.dialogue.selected) {
+                if let Some(choice) = self.dialogue.selected.and_then(|i| choices.get(i)) {
                     self.sfx.push(Sfx::Click);
                     self.enter(choice.node);
                 }
@@ -262,16 +267,20 @@ fn dialogue_input(
     let choice_count = dialogue.choices().len();
     if choice_count > 0 {
         if menu.up {
-            dialogue.selected = (dialogue.selected + choice_count - 1) % choice_count;
+            dialogue.selected = Some(
+                dialogue
+                    .selected
+                    .map_or(choice_count - 1, |i| (i + choice_count - 1) % choice_count),
+            );
         }
         if menu.down {
-            dialogue.selected = (dialogue.selected + 1) % choice_count;
+            dialogue.selected = Some(dialogue.selected.map_or(0, |i| (i + 1) % choice_count));
         }
         for (interaction, ChoiceButton(index)) in &choice_buttons {
             match interaction {
-                Interaction::Hovered => dialogue.selected = *index,
+                Interaction::Hovered => dialogue.selected = Some(*index),
                 Interaction::Pressed => {
-                    dialogue.selected = *index;
+                    dialogue.selected = Some(*index);
                     confirm = true;
                 }
                 Interaction::None => {}
@@ -290,6 +299,10 @@ fn dialogue_input(
         dialogue.line += 1;
         dialogue.revealed = 0.0;
         dialogue.shown = dialogue.scene.lines.get(dialogue.line).cloned();
+        return;
+    }
+    if choice_count > 0 && dialogue.selected.is_none() {
+        dialogue.needs_selection = true;
         return;
     }
     let mut runner = Runner::new(
@@ -379,7 +392,7 @@ fn spawn_dialogue_box(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ChoiceList(0),
                 ),
                 (
-                    Text::new("[Space] continue"),
+                    Text::default(),
                     TextFont {
                         font: font.into(),
                         font_size: 16.0.into(),
@@ -390,7 +403,7 @@ fn spawn_dialogue_box(mut commands: Commands, asset_server: Res<AssetServer>) {
                         align_self: AlignSelf::FlexEnd,
                         ..default()
                     },
-                    ContinueHint,
+                    Hint,
                 ),
             ],
         )],
@@ -412,7 +425,6 @@ fn update_text(
     dialogue: Res<Dialogue>,
     speaker: Single<(&mut Text, &mut TextColor), (With<SpeakerText>, Without<BodyText>)>,
     mut body: Single<&mut Text, (With<BodyText>, Without<SpeakerText>)>,
-    mut hint: Single<&mut Visibility, With<ContinueHint>>,
 ) {
     if !dialogue.is_changed() {
         return;
@@ -429,10 +441,36 @@ fn update_text(
     if body.0 != revealed {
         body.0 = revealed;
     }
-    **hint = if dialogue.fully_revealed() && dialogue.choices().is_empty() {
-        Visibility::Inherited
+}
+
+#[allow(clippy::type_complexity)]
+fn update_hint(
+    dialogue: Res<Dialogue>,
+    hint: Single<
+        (&mut Text, &mut TextColor),
+        (With<Hint>, Without<BodyText>, Without<SpeakerText>),
+    >,
+) {
+    if !dialogue.is_changed() {
+        return;
+    }
+    let (mut text, mut color) = hint.into_inner();
+    let hint = if !dialogue.fully_revealed() {
+        ""
+    } else if dialogue.choices().is_empty() {
+        "[Space] continue"
+    } else if dialogue.selected.is_some() {
+        "[Space] confirm"
     } else {
-        Visibility::Hidden
+        "[Up/Down] choose an answer"
+    };
+    if text.0 != hint {
+        text.0 = hint.to_string();
+    }
+    color.0 = if dialogue.needs_selection && dialogue.selected.is_none() {
+        Color::srgb(1.0, 0.75, 0.4)
+    } else {
+        Color::srgb(0.5, 0.5, 0.5)
     };
 }
 
@@ -481,7 +519,7 @@ fn style_choices(
     mut texts: Query<&mut TextColor>,
 ) {
     for (ChoiceButton(index), mut background, children) in &mut buttons {
-        let selected = *index == dialogue.selected;
+        let selected = dialogue.selected == Some(*index);
         background.0 = if selected {
             Color::srgba(0.5, 0.12, 0.1, 0.6)
         } else {
