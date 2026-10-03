@@ -91,7 +91,7 @@ fn spawn_ending_screen(
                 Color::srgb(0.85, 0.85, 0.85),
             ));
             parent.spawn(text(
-                "ULU - made for Ludum Dare 52, theme \"Harvest\"\nThanks for playing!".into(),
+                "ULU - The Harvest\nMade for Ludum Dare 52, theme \"Harvest\"\nThanks for playing!".into(),
                 22.0,
                 gray,
             ));

@@ -94,7 +94,7 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
                     },
                 ),
                 (
-                    Text::new("Harvest"),
+                    Text::new("The Harvest"),
                     TextFont {
                         font: font.clone().into(),
                         font_size: 32.0.into(),

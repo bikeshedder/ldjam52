@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<()> {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            title: String::from("ULU - Harvest"),
+            title: String::from("ULU - The Harvest"),
             present_mode: PresentMode::Immediate,
             ..default()
         }),
