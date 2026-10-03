@@ -110,6 +110,8 @@ pub struct RoomObject {
 #[derive(Resource, Clone, Debug, Default)]
 pub struct Room {
     pub name: String,
+    /// The room the player came from.
+    pub entered_from: String,
     pub dark: bool,
     pub spawns: HashMap<String, Vec2>,
     pub doors: Vec<Door>,
@@ -213,6 +215,14 @@ pub struct EnterRoom {
     pub spawn: String,
 }
 
+/// Request to leave the current room through the door the player came in.
+#[derive(Message, Clone, Copy, Debug)]
+pub struct LeaveRoom;
+
+/// The player wants to leave the room once the current dialogue is closed.
+#[derive(Resource, Default)]
+struct PendingLeave(bool);
+
 /// A room change waiting for the screen to turn black.
 #[derive(Resource, Default)]
 struct Transition(Option<EnterRoom>);
@@ -226,18 +236,42 @@ pub struct RoomsPlugin;
 impl Plugin for RoomsPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<EnterRoom>()
+            .add_message::<LeaveRoom>()
+            .init_resource::<PendingLeave>()
             .add_message::<RoomSpawned>()
             .init_resource::<Room>()
             .init_resource::<Transition>()
             .add_systems(
                 Update,
                 (
+                    remember_leave,
+                    // Dialogues request this, so it's handled once they are closed.
+                    leave_room.run_if(in_state(Phase::Exploring)),
                     start_transition,
                     finish_transition.run_if(in_state(Phase::Transition)),
                 )
                     .chain()
                     .run_if(in_state(crate::AppState::Game)),
             );
+    }
+}
+
+fn remember_leave(mut requests: MessageReader<LeaveRoom>, mut pending: ResMut<PendingLeave>) {
+    if requests.read().last().is_some() {
+        pending.0 = true;
+    }
+}
+
+fn leave_room(
+    mut pending: ResMut<PendingLeave>,
+    room: Res<Room>,
+    mut enter: MessageWriter<EnterRoom>,
+) {
+    if std::mem::take(&mut pending.0) && !room.entered_from.is_empty() {
+        enter.write(EnterRoom {
+            room: room.entered_from.clone(),
+            spawn: room.name.clone(),
+        });
     }
 }
 
@@ -308,7 +342,10 @@ impl RoomSpawner<'_, '_> {
         for mut transform in &mut self.player {
             transform.translation = character_translation(spawn_cell);
         }
-        *self.room = room;
+        *self.room = Room {
+            entered_from: spawn.to_string(),
+            ..room
+        };
         self.spawned.write(RoomSpawned);
     }
 }

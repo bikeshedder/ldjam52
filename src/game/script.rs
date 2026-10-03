@@ -172,6 +172,8 @@ pub enum Effect {
     Fade,
     /// Turn the screen black (`true`) or reveal it again (`false`).
     Blackout(bool),
+    /// Leave the room through the door the player came in.
+    LeaveRoom,
 }
 
 pub struct Ctx<'a> {
@@ -311,6 +313,7 @@ pub enum Node {
     // Dark ritual room
     DarkRoom,
     DarkRoomLight,
+    DarkRoomLeave,
     Trip,
 
     // Ritual: carpet, floor and circle
@@ -791,6 +794,11 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             s.c("It's very dark here. I should be careful.")
                 .choice("I am not afraid of the dark. Ulu will guide me.", Node::Exit)
                 .choice_if(candle, "I should better make some light.", Node::DarkRoomLight)
+                .choice("I'd better leave this room.", Node::DarkRoomLeave)
+        }
+        Node::DarkRoomLeave => {
+            cx.effects.push(Effect::LeaveRoom);
+            s.n("You turn around and feel your way back to the door.")
         }
         Node::DarkRoomLight => {
             cx.sfx(Sfx::RoomIsNowBright);

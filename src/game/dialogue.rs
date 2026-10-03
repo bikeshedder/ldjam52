@@ -8,6 +8,7 @@ use super::{
     hud::ScreenFx,
     input::{Action, InputDevice, MenuInput},
     progress::{Meta, Progress},
+    rooms::LeaveRoom,
     script::{self, Ctx, Effect, Line, Next, Scene, Speaker},
 };
 use crate::AppState;
@@ -107,6 +108,7 @@ struct Runner<'a> {
     app_state: &'a mut NextState<AppState>,
     sfx: Vec<Sfx>,
     meta_changed: bool,
+    leave_room: bool,
 }
 
 impl<'a> Runner<'a> {
@@ -127,12 +129,14 @@ impl<'a> Runner<'a> {
             app_state,
             sfx: Vec::new(),
             meta_changed: false,
+            leave_room: false,
         }
     }
 
-    /// Returns the collected sounds and whether [`Meta`] was changed.
-    fn finish(self) -> (Vec<Sfx>, bool) {
-        (self.sfx, self.meta_changed)
+    /// Returns the collected sounds, whether [`Meta`] was changed and whether
+    /// the player leaves the room.
+    fn finish(self) -> (Vec<Sfx>, bool, bool) {
+        (self.sfx, self.meta_changed, self.leave_room)
     }
 
     /// Enters the given node, following `Goto`s of scenes without lines.
@@ -150,6 +154,7 @@ impl<'a> Runner<'a> {
                     Effect::Sfx(sfx) => self.sfx.push(sfx),
                     Effect::Fade => self.screen.pulse(),
                     Effect::Blackout(black) => self.screen.blackout = black,
+                    Effect::LeaveRoom => self.leave_room = true,
                 }
             }
             if scene.lines.is_empty() {
@@ -207,11 +212,14 @@ impl<'a> Runner<'a> {
 }
 
 fn apply(
-    sounds: Vec<Sfx>,
-    meta_changed: bool,
+    (sounds, meta_changed, leave_room): (Vec<Sfx>, bool, bool),
     meta: &mut ResMut<Meta>,
     sfx: &mut MessageWriter<PlaySfx>,
+    leave: &mut MessageWriter<LeaveRoom>,
 ) {
+    if leave_room {
+        leave.write(LeaveRoom);
+    }
     if meta_changed {
         meta.set_changed();
     }
@@ -230,6 +238,7 @@ fn start_dialogue(
     mut sfx: MessageWriter<PlaySfx>,
     mut phase: ResMut<NextState<Phase>>,
     mut app_state: ResMut<NextState<AppState>>,
+    mut leave: MessageWriter<LeaveRoom>,
 ) {
     // Only one dialogue can run at a time.
     let Some(StartDialogue(node)) = requests.read().last().copied() else {
@@ -244,8 +253,7 @@ fn start_dialogue(
         &mut app_state,
     );
     runner.enter(node);
-    let (sounds, meta_changed) = runner.finish();
-    apply(sounds, meta_changed, &mut meta, &mut sfx);
+    apply(runner.finish(), &mut meta, &mut sfx, &mut leave);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -260,6 +268,7 @@ fn dialogue_input(
     mut sfx: MessageWriter<PlaySfx>,
     mut phase: ResMut<NextState<Phase>>,
     mut app_state: ResMut<NextState<AppState>>,
+    mut leave: MessageWriter<LeaveRoom>,
 ) {
     let menu = input.read();
     let mut confirm = menu.confirm || box_interaction.iter().any(|i| *i == Interaction::Pressed);
@@ -314,8 +323,7 @@ fn dialogue_input(
         &mut app_state,
     );
     runner.finish_scene();
-    let (sounds, meta_changed) = runner.finish();
-    apply(sounds, meta_changed, &mut meta, &mut sfx);
+    apply(runner.finish(), &mut meta, &mut sfx, &mut leave);
 }
 
 fn reveal_text(time: Res<Time>, mut dialogue: ResMut<Dialogue>) {
