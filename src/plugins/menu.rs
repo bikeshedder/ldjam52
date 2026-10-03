@@ -21,6 +21,7 @@ impl Plugin for Menu {
             // Systems to handle the main menu screen
             .add_systems(OnEnter(MenuState::Main), main_menu_setup)
             .add_systems(OnEnter(MenuState::Achievements), achievements_setup)
+            .add_systems(OnEnter(MenuState::Credits), credits_setup)
             .add_systems(Update, menu_navigation.run_if(in_state(AppState::Menu)));
     }
 }
@@ -155,6 +156,17 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
                 ),
                 (
                     Button,
+                    button_node.clone(),
+                    BackgroundColor(NORMAL_BUTTON),
+                    MenuButtonAction::Credits,
+                    children![(
+                        Text::new("Credits"),
+                        button_text_font.clone(),
+                        TextColor(TEXT_COLOR)
+                    )],
+                ),
+                (
+                    Button,
                     button_node,
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Quit,
@@ -214,6 +226,7 @@ enum MenuState {
     #[default]
     Main,
     Achievements,
+    Credits,
 }
 
 // All actions that can be triggered from a button click
@@ -221,6 +234,7 @@ enum MenuState {
 enum MenuButtonAction {
     Play,
     Achievements,
+    Credits,
     BackToMainMenu,
     Quit,
 }
@@ -232,9 +246,10 @@ impl MenuState {
             Self::Main => &[
                 MenuButtonAction::Play,
                 MenuButtonAction::Achievements,
+                MenuButtonAction::Credits,
                 MenuButtonAction::Quit,
             ],
-            Self::Achievements => &[MenuButtonAction::BackToMainMenu],
+            Self::Achievements | Self::Credits => &[MenuButtonAction::BackToMainMenu],
         }
     }
 }
@@ -382,6 +397,99 @@ fn achievements_setup(mut commands: Commands, asset_server: Res<AssetServer>, me
     ));
 }
 
+/// The people who made the game and what they did.
+const CREDITS: [(&str, &str); 5] = [
+    ("Michael P. Jung", "Story & Software Engineer"),
+    ("Tim Markmann", "Story & Level Design"),
+    ("Tom Haase", "Music & Sounds"),
+    ("Manuel Terranova", "Story & Dialogs"),
+    ("Claude AI", "Junior Developer"),
+];
+
+fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(MenuSelection::default());
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    let text = |content: &str, size: f32, color: Color| {
+        (
+            Text::new(content),
+            TextFont {
+                font: font.clone().into(),
+                font_size: size.into(),
+                ..default()
+            },
+            TextColor(color),
+        )
+    };
+    let root = commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            DespawnOnExit(MenuState::Credits),
+        ))
+        .id();
+    let panel = commands
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(6.0),
+                padding: UiRect::axes(Val::Px(60.0), Val::Px(24.0)),
+                ..default()
+            },
+            BackgroundColor(MENU_BG),
+            ChildOf(root),
+        ))
+        .id();
+    commands.spawn((text("Credits", 36.0, TEXT_COLOR), ChildOf(panel)));
+    commands.spawn((
+        text("ULU - The Harvest", 20.0, Color::srgb(0.85, 0.2, 0.15)),
+        Node {
+            margin: UiRect::bottom(Val::Px(14.0)),
+            ..default()
+        },
+        ChildOf(panel),
+    ));
+    for (name, role) in CREDITS {
+        commands.spawn((text(name, 26.0, Color::WHITE), ChildOf(panel)));
+        commands.spawn((
+            text(role, 17.0, Color::srgb(0.75, 0.55, 0.2)),
+            Node {
+                margin: UiRect::bottom(Val::Px(10.0)),
+                ..default()
+            },
+            ChildOf(panel),
+        ));
+    }
+    commands.spawn((
+        text(
+            "Made for Ludum Dare 52, theme \"Harvest\"",
+            16.0,
+            Color::srgb(0.55, 0.55, 0.55),
+        ),
+        ChildOf(panel),
+    ));
+    commands.spawn((
+        Button,
+        Node {
+            width: Val::Px(200.0),
+            height: Val::Px(50.0),
+            margin: UiRect::top(Val::Px(14.0)),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor(NORMAL_BUTTON),
+        MenuButtonAction::BackToMainMenu,
+        ChildOf(panel),
+        children![text("Back", 28.0, TEXT_COLOR)],
+    ));
+}
+
 /// Navigates the menu with keyboard, gamepad or mouse.
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn menu_navigation(
@@ -436,6 +544,7 @@ fn menu_navigation(
         }
         MenuButtonAction::Play => game_state.set(AppState::Game),
         MenuButtonAction::Achievements => menu_state.set(MenuState::Achievements),
+        MenuButtonAction::Credits => menu_state.set(MenuState::Credits),
         MenuButtonAction::BackToMainMenu => menu_state.set(MenuState::Main),
     }
 }

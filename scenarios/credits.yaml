@@ -1,0 +1,10 @@
+# The credits screen in the main menu.
+- screenshot: menu_with_credits
+- press: Down
+- press: Down
+- press: Space
+- wait: 0.5
+- screenshot: credits
+- press: Escape
+- wait: 0.5
+- screenshot: back_in_menu
