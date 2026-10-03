@@ -466,14 +466,6 @@ fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ));
     }
     commands.spawn((
-        text(
-            "Made for Ludum Dare 52, theme \"Harvest\"",
-            16.0,
-            Color::srgb(0.55, 0.55, 0.55),
-        ),
-        ChildOf(panel),
-    ));
-    commands.spawn((
         Button,
         Node {
             width: Val::Px(200.0),
