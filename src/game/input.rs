@@ -16,6 +16,7 @@ pub struct MenuActions {
 pub struct MenuInput<'w, 's> {
     keys: Res<'w, ButtonInput<KeyCode>>,
     gamepads: Query<'w, 's, &'static Gamepad>,
+    stick: Res<'w, StickNavigation>,
 }
 
 impl MenuInput<'_, '_> {
@@ -28,6 +29,8 @@ impl MenuInput<'_, '_> {
             back: keys.just_pressed(KeyCode::Escape),
             pause: keys.just_pressed(KeyCode::Escape),
         };
+        actions.up |= self.stick.up;
+        actions.down |= self.stick.down;
         for gamepad in &self.gamepads {
             actions.up |= gamepad.just_pressed(GamepadButton::DPadUp);
             actions.down |= gamepad.just_pressed(GamepadButton::DPadDown);
@@ -37,6 +40,41 @@ impl MenuInput<'_, '_> {
         }
         actions
     }
+}
+
+/// Turns pushing the left stick up or down into single presses for menu
+/// navigation. The stick has to return to the center before it triggers again.
+#[derive(Resource, Default)]
+struct StickNavigation {
+    /// -1 (down), 0 (center) or 1 (up).
+    direction: i8,
+    up: bool,
+    down: bool,
+}
+
+/// Stick deflection which counts as pushed.
+const STICK_PUSHED: f32 = 0.6;
+/// Stick deflection below which the stick counts as centered again.
+const STICK_RELEASED: f32 = 0.3;
+
+fn update_stick_navigation(gamepads: Query<&Gamepad>, mut stick: ResMut<StickNavigation>) {
+    let y = gamepads
+        .iter()
+        .map(|gamepad| gamepad.left_stick().y)
+        .max_by(|a, b| a.abs().total_cmp(&b.abs()))
+        .unwrap_or(0.0);
+    let direction = if y >= STICK_PUSHED {
+        1
+    } else if y <= -STICK_PUSHED {
+        -1
+    } else if y.abs() < STICK_RELEASED {
+        0
+    } else {
+        stick.direction
+    };
+    stick.up = direction == 1 && stick.direction != 1;
+    stick.down = direction == -1 && stick.direction != -1;
+    stick.direction = direction;
 }
 
 /// The input device the player used last. Input hints are shown for it.
@@ -62,7 +100,7 @@ impl InputDevice {
             (Self::Keyboard, Action::Choose) => "[Up/Down]",
             (Self::Keyboard, Action::Pause) => "[Esc]",
             (Self::Gamepad, Action::Confirm) => "(A)",
-            (Self::Gamepad, Action::Choose) => "(D-Pad)",
+            (Self::Gamepad, Action::Choose) => "(Stick)",
             (Self::Gamepad, Action::Pause) => "(Start)",
         }
     }
@@ -78,9 +116,10 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputDevice>()
+            .init_resource::<StickNavigation>()
             .add_systems(
                 PreUpdate,
-                detect_input_device.after(bevy::input::InputSystems),
+                (detect_input_device, update_stick_navigation).after(bevy::input::InputSystems),
             )
             .add_systems(Update, update_device_texts);
     }
