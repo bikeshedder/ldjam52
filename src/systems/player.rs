@@ -69,10 +69,11 @@ pub fn player_system(
             player.input.x * PLAYER_SPEED_X,
             player.input.y * PLAYER_SPEED_Y,
         ) * delta;
-        // Slide along walls if the full step is blocked.
-        let moved = [step, Vec2::new(step.x, 0.0), Vec2::new(0.0, step.y)]
-            .into_iter()
-            .find(|step| can_stand(feet + *step));
+        let moved = if can_stand(feet + step) {
+            Some(step)
+        } else {
+            slide(step, feet, &solids).find(|step| can_stand(feet + *step))
+        };
         if let Some(step) = moved {
             transform.translation += step.extend(0.0);
             footsteps.timer -= delta;
@@ -98,4 +99,58 @@ pub fn player_system(
     });
 
     sprite.flip_x = matches!(player.direction, PlayerDirection::NW | PlayerDirection::SW);
+}
+
+/// Directions of the map axes on screen. Walls run along them.
+const MAP_X: Vec2 = Vec2::new(64.0, -32.0);
+const MAP_Y: Vec2 = Vec2::new(-64.0, -32.0);
+
+/// Splits a step into its parts along the map's x and y axes.
+fn split_along_map_axes(step: Vec2) -> (Vec2, Vec2) {
+    let det = MAP_X.perp_dot(MAP_Y);
+    (
+        MAP_X * step.perp_dot(MAP_Y) / det,
+        MAP_Y * MAP_X.perp_dot(step) / det,
+    )
+}
+
+/// Alternative steps when the full step is blocked, longest first: the parts of
+/// the step along the walls and around round obstacles. This keeps the part of
+/// the movement which is still possible instead of stopping at walls.
+fn slide(
+    step: Vec2,
+    feet: Vec2,
+    solids: &Query<(&Transform, &Solid), Without<Player>>,
+) -> impl Iterator<Item = Vec2> {
+    let (along_x, along_y) = split_along_map_axes(step);
+    let mut candidates = vec![along_x, along_y];
+    // Around round obstacles: drop the part of the step towards them.
+    for (transform, solid) in solids {
+        let center = transform.translation.truncate() + FEET_OFFSET * transform.scale.y;
+        let to_center = center - feet;
+        if to_center.length() < solid.radius * 1.5 {
+            let normal = to_center.normalize_or_zero();
+            candidates.push(step - normal * step.dot(normal).max(0.0));
+        }
+    }
+    candidates.retain(|candidate| candidate.length() > step.length() * 0.05);
+    candidates.sort_by(|a, b| b.length().total_cmp(&a.length()));
+    candidates.into_iter()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn steps_are_split_along_the_map_axes() {
+        // Moving straight up on screen goes diagonally against both map axes.
+        let (along_x, along_y) = split_along_map_axes(Vec2::new(0.0, 10.0));
+        assert!((along_x + along_y - Vec2::new(0.0, 10.0)).length() < 1e-4);
+        assert!(along_x.perp_dot(MAP_X).abs() < 1e-4);
+        assert!(along_y.perp_dot(MAP_Y).abs() < 1e-4);
+        // A step along a wall stays as it is.
+        let (along_x, along_y) = split_along_map_axes(MAP_X);
+        assert!((along_x - MAP_X).length() < 1e-4 && along_y.length() < 1e-4);
+    }
 }
