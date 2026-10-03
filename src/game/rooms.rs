@@ -189,6 +189,12 @@ impl Room {
         room
     }
 
+    /// Reads the room with the given name from its map.
+    pub fn load(name: &str, room_maps: &RoomMaps, maps: &Assets<TiledMap>) -> Option<Self> {
+        let map = maps.get(room_maps.0.get(name)?)?;
+        Some(Self::from_map(name, map))
+    }
+
     pub fn interactable(&self, name: &str) -> Option<&RoomObject> {
         self.interactables.iter().find(|object| object.name == name)
     }

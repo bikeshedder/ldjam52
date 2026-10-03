@@ -10,7 +10,10 @@ use super::{
     iso::{FEET_OFFSET, cell_center, character_translation, depth_at},
     outline::Highlighted,
     progress::{Carpet, Item, Progress, RitualCircle},
-    rooms::{Area, EnterRoom, Room, RoomEntity, RoomSpawned, RoomSpawner, START_ROOM, START_SPAWN},
+    rooms::{
+        Area, EnterRoom, Room, RoomEntity, RoomMaps, RoomSpawned, RoomSpawner, START_ROOM,
+        START_SPAWN,
+    },
     script::Node,
 };
 use crate::{
@@ -20,11 +23,13 @@ use crate::{
         player::Player,
     },
     data::entity_types::{EntityType, EntityTypes, Loaded},
-    plugins::tiled::{MapTile, flat_depth},
+    plugins::tiled::{MapTile, TiledMap, flat_depth},
     systems::animation::AnimationTimer,
 };
 
 const LIBRARIAN_SPEED: f32 = 70.0;
+const LIBRARIAN_SCALE: f32 = 0.95;
+const LIBRARY: &str = "library";
 const LIBRARIAN_SIGHT: f32 = 230.0;
 const DEFAULT_RADIUS: f32 = 120.0;
 const DOOR_RADIUS: f32 = 100.0;
@@ -90,15 +95,57 @@ struct Tint(Color);
 
 #[derive(Component)]
 struct Librarian {
-    /// Patrol route in world coordinates.
-    patrol: Vec<Vec2>,
-    target: usize,
-    wait: f32,
-    facing: Vec2,
     /// Prevents the librarian from addressing the player again right away.
     cooldown: bool,
     /// The player is talking to the librarian from behind, so he doesn't turn around.
     unaware: bool,
+}
+
+/// Where the librarian is on his patrol through the library. This is kept
+/// outside of the library, so he keeps walking while the player is elsewhere.
+#[derive(Resource, Default)]
+struct LibrarianPatrol {
+    /// Patrol route in world coordinates of the library.
+    route: Vec<Vec2>,
+    /// Position of his feet.
+    position: Vec2,
+    target: usize,
+    wait: f32,
+    facing: Vec2,
+}
+
+impl LibrarianPatrol {
+    fn new(route: Vec<Vec2>) -> Self {
+        Self {
+            position: route.first().copied().unwrap_or_default(),
+            target: 1 % route.len().max(1),
+            wait: 0.0,
+            facing: Vec2::new(-1.0, -0.5).normalize(),
+            route,
+        }
+    }
+
+    /// Walks between the waypoints. Returns the walking direction, or `None`
+    /// while waiting at a waypoint.
+    fn walk(&mut self, delta: f32) -> Option<Vec2> {
+        if self.wait > 0.0 || self.route.is_empty() {
+            self.wait -= delta;
+            return None;
+        }
+        let to_target = self.route[self.target] - self.position;
+        let step = LIBRARIAN_SPEED * delta;
+        if to_target.length() <= step {
+            self.position += to_target;
+            self.target = (self.target + 1) % self.route.len();
+            self.wait = 2.5;
+            None
+        } else {
+            let direction = to_target.normalize();
+            self.position += direction * step;
+            self.facing = direction;
+            Some(direction)
+        }
+    }
 }
 
 #[derive(Component)]
@@ -128,6 +175,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<RoomTracker>()
             .init_resource::<Focus>()
+            .init_resource::<LibrarianPatrol>()
             .add_systems(
                 OnEnter(AppState::Game),
                 (setup_world, enter_start_room).chain(),
@@ -214,9 +262,17 @@ fn setup_world(
     entity_types: Res<EntityTypes>,
     mut progress: ResMut<Progress>,
     mut tracker: ResMut<RoomTracker>,
+    mut patrol: ResMut<LibrarianPatrol>,
+    room_maps: Res<RoomMaps>,
+    maps: Res<Assets<TiledMap>>,
 ) {
     *progress = Progress::default();
     *tracker = RoomTracker::default();
+    let route = Room::load(LIBRARY, &room_maps, &maps)
+        .and_then(|room| room.npcs.into_iter().find(|npc| npc.name == "librarian"))
+        .map(|npc| npc.path.into_iter().map(cell_center).collect())
+        .unwrap_or_default();
+    *patrol = LibrarianPatrol::new(route);
     spawn_entity(
         &mut commands,
         &entity_types["player"],
@@ -235,9 +291,11 @@ fn enter_start_room(mut spawner: RoomSpawner) {
 }
 
 /// Spawns the characters and interactable objects of the room which was just entered.
+#[allow(clippy::too_many_arguments)]
 fn spawn_room_contents(
     mut commands: Commands,
     room: Res<Room>,
+    patrol: Res<LibrarianPatrol>,
     entity_types: Res<EntityTypes>,
     progress: Res<Progress>,
     asset_server: Res<AssetServer>,
@@ -302,19 +360,18 @@ fn spawn_room_contents(
                     ),
                 );
             }
+            // The librarian is wherever his patrol took him meanwhile.
             "librarian" if !progress.librarian_gone => {
+                let translation = (patrol.position - FEET_OFFSET * LIBRARIAN_SCALE).extend(0.0);
                 spawn_entity(
                     &mut commands,
                     mouse,
                     translation,
                     Some("idle_down"),
                     (
-                        Transform::from_translation(translation).with_scale(Vec3::splat(0.95)),
+                        Transform::from_translation(translation)
+                            .with_scale(Vec3::splat(LIBRARIAN_SCALE)),
                         Librarian {
-                            patrol: npc.path.iter().map(|cell| cell_center(*cell)).collect(),
-                            target: 1 % npc.path.len(),
-                            wait: 0.0,
-                            facing: Vec2::new(-1.0, -0.5).normalize(),
                             cooldown: false,
                             unaware: false,
                         },
@@ -413,11 +470,8 @@ fn update_highlight(
     }
 }
 
-fn librarian_from_behind(librarian: &Librarian, librarian_pos: Vec2, player_pos: Vec2) -> bool {
-    (player_pos - librarian_pos)
-        .normalize_or_zero()
-        .dot(librarian.facing)
-        < -0.2
+fn librarian_from_behind(facing: Vec2, librarian_pos: Vec2, player_pos: Vec2) -> bool {
+    (player_pos - librarian_pos).normalize_or_zero().dot(facing) < -0.2
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -428,6 +482,7 @@ fn interact(
     mut prompt: ResMut<Prompt>,
     mut focus: ResMut<Focus>,
     room: Res<Room>,
+    patrol: Res<LibrarianPatrol>,
     mut dialogue: MessageWriter<StartDialogue>,
     mut enter: MessageWriter<EnterRoom>,
 ) {
@@ -467,7 +522,7 @@ fn interact(
     };
     let behind = librarian
         .as_ref()
-        .is_some_and(|l| librarian_from_behind(l, pos, player_pos));
+        .is_some_and(|_| librarian_from_behind(patrol.facing, pos, player_pos));
     if let Target::Door(index) = interactable.target {
         prompt.0 = Some("Open the door".to_string());
         if player.input.interact {
@@ -512,8 +567,10 @@ fn interact(
     }
 }
 
+/// Moves the librarian along his patrol, also while the player is in another room.
 fn librarian_patrol(
     time: Res<Time>,
+    mut patrol: ResMut<LibrarianPatrol>,
     player: Single<&Transform, (With<Player>, Without<Librarian>)>,
     librarian: Option<
         Single<(
@@ -526,11 +583,16 @@ fn librarian_patrol(
     progress: Res<Progress>,
     mut dialogue: MessageWriter<StartDialogue>,
 ) {
-    let Some(librarian) = librarian.filter(|_| !progress.librarian_gone) else {
+    if progress.librarian_gone {
+        return;
+    }
+    let Some(librarian) = librarian else {
+        // He is somewhere in the library while the player is elsewhere.
+        patrol.walk(time.delta_secs());
         return;
     };
     let (mut librarian, mut transform, mut animation, mut sprite) = librarian.into_inner();
-    let pos = feet(&transform);
+    let pos = patrol.position;
     let player_pos = feet(&player);
     let distance = pos.distance(player_pos);
 
@@ -538,7 +600,7 @@ fn librarian_patrol(
     if librarian.cooldown {
         librarian.cooldown = distance < LIBRARIAN_SIGHT * 1.5;
     } else if distance < LIBRARIAN_SIGHT {
-        if !librarian_from_behind(&librarian, pos, player_pos) {
+        if !librarian_from_behind(patrol.facing, pos, player_pos) {
             librarian.cooldown = true;
             librarian.unaware = false;
             dialogue.write(StartDialogue(Node::Librarian));
@@ -553,37 +615,30 @@ fn librarian_patrol(
         }
     }
 
-    // Walk between the waypoints.
-    if librarian.wait > 0.0 {
-        librarian.wait -= time.delta_secs();
-        let up = librarian.facing.y > 0.0;
-        animation.start(if up { "idle_up" } else { "idle_down" });
-        return;
-    }
-    let target = librarian.patrol[librarian.target];
-    let to_target = target - pos;
-    let step = LIBRARIAN_SPEED * time.delta_secs();
-    if to_target.length() <= step {
-        transform.translation += to_target.extend(0.0);
-        librarian.target = (librarian.target + 1) % librarian.patrol.len();
-        librarian.wait = 2.5;
-    } else {
-        let direction = to_target.normalize();
-        transform.translation += (direction * step).extend(0.0);
-        librarian.facing = direction;
-        animation.start(if direction.y > 0.0 {
-            "walk_up"
+    match patrol.walk(time.delta_secs()) {
+        Some(direction) => {
+            animation.start(if direction.y > 0.0 {
+                "walk_up"
+            } else {
+                "walk_down"
+            });
+            sprite.flip_x = direction.x < 0.0;
+        }
+        None => animation.start(if patrol.facing.y > 0.0 {
+            "idle_up"
         } else {
-            "walk_down"
-        });
-        sprite.flip_x = direction.x < 0.0;
+            "idle_down"
+        }),
     }
+    let z = transform.translation.z;
+    transform.translation = (patrol.position - FEET_OFFSET * transform.scale.y).extend(z);
 }
 
 /// Characters look at the player while talking.
 #[allow(clippy::type_complexity)]
 fn face_player(
     phase: Res<State<Phase>>,
+    mut patrol: ResMut<LibrarianPatrol>,
     player: Single<&Transform, With<Player>>,
     mut npcs: Query<
         (
@@ -606,8 +661,8 @@ fn face_player(
                 "idle_down"
             });
             sprite.flip_x = to_player.x < 0.0;
-            if let Some(mut librarian) = librarian {
-                librarian.facing = to_player.normalize_or_zero();
+            if librarian.is_some() {
+                patrol.facing = to_player.normalize_or_zero();
             }
         } else if librarian.is_none() {
             // The magister is reading at the bookshelf.
@@ -839,5 +894,23 @@ fn update_world_visuals(
         } else {
             Visibility::Hidden
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn librarian_walks_and_waits_at_waypoints() {
+        let mut patrol = LibrarianPatrol::new(vec![Vec2::ZERO, Vec2::new(100.0, 0.0)]);
+        assert_eq!(patrol.walk(1.0), Some(Vec2::X));
+        assert_eq!(patrol.position, Vec2::new(LIBRARIAN_SPEED, 0.0));
+        // Reaches the waypoint and waits there before walking back.
+        assert_eq!(patrol.walk(1.0), None);
+        assert_eq!(patrol.position, Vec2::new(100.0, 0.0));
+        assert_eq!(patrol.walk(2.0), None);
+        assert_eq!(patrol.walk(1.0), None);
+        assert_eq!(patrol.walk(1.0), Some(Vec2::NEG_X));
     }
 }
