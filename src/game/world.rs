@@ -304,10 +304,13 @@ fn spawn_room_contents(
     entity_types: Res<EntityTypes>,
     progress: Res<Progress>,
     asset_server: Res<AssetServer>,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let mouse = &entity_types["player"];
+    if room.name == LIBRARY && progress.librarian_killed {
+        spawn_blood_stain(&mut commands, &mut meshes, &mut materials, patrol.position);
+    }
     for object in &room.interactables {
         let Some(target) = Target::from_name(&object.name) else {
             warn!(
@@ -705,12 +708,56 @@ fn face_player(
 fn remove_librarian(
     mut commands: Commands,
     progress: Res<Progress>,
+    patrol: Res<LibrarianPatrol>,
     librarian: Query<Entity, With<Librarian>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if progress.librarian_gone {
         for entity in &librarian {
             commands.entity(entity).despawn();
+            if progress.librarian_killed {
+                spawn_blood_stain(&mut commands, &mut meshes, &mut materials, patrol.position);
+            }
         }
+    }
+}
+
+/// A pool of blood on the floor where the librarian died. His patrol stopped
+/// there, so its position is where he fell.
+fn spawn_blood_stain(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<ColorMaterial>,
+    position: Vec2,
+) {
+    let blood = materials.add(Color::srgba(0.42, 0.02, 0.03, 0.9));
+    let dark = materials.add(Color::srgba(0.25, 0.0, 0.02, 0.9));
+    // Several overlapping blobs, squashed to lie flat on the isometric floor.
+    let stain = commands
+        .spawn((
+            Transform::from_translation(position.extend(flat_depth(2) + 0.05))
+                .with_scale(Vec3::new(1.0, 0.5, 1.0)),
+            Visibility::default(),
+            RoomEntity,
+            DespawnOnExit(AppState::Game),
+        ))
+        .id();
+    for (x, y, radius, material) in [
+        (0.0, 0.0, 30.0, &blood),
+        (-26.0, 10.0, 18.0, &blood),
+        (24.0, -12.0, 20.0, &blood),
+        (8.0, 22.0, 12.0, &blood),
+        (-4.0, 2.0, 16.0, &dark),
+        (44.0, -26.0, 6.0, &blood),
+        (-46.0, 20.0, 5.0, &blood),
+    ] {
+        commands.spawn((
+            Mesh2d(meshes.add(Circle::new(radius))),
+            MeshMaterial2d(material.clone()),
+            Transform::from_xyz(x, y, 0.0),
+            ChildOf(stain),
+        ));
     }
 }
 

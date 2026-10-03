@@ -222,6 +222,8 @@ pub struct Progress {
     pub librarian_met: bool,
     pub librarian_gave_candle: bool,
     pub librarian_gone: bool,
+    /// The librarian is gone because the player killed him.
+    pub librarian_killed: bool,
     pub magister_talked: bool,
 
     pub fire_lit: bool,
@@ -255,6 +257,7 @@ impl Default for Progress {
             librarian_met: false,
             librarian_gave_candle: false,
             librarian_gone: false,
+            librarian_killed: false,
             magister_talked: false,
             fire_lit: true,
             bed_destroyed: false,

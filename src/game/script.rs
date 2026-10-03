@@ -18,7 +18,7 @@ pub const LIBRARIAN: &str = "Edam";
 pub const MAGISTER: &str = "Roquefort";
 
 /// The servants of Ulu living behind the locked doors in the hall.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
 pub enum Occupant {
     /// Sound asleep. He will miss the Great Harvest.
     Sleeper,
@@ -231,7 +231,7 @@ impl<'a> Ctx<'a> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
 pub enum Node {
     /// Ends the dialogue.
     Exit,
@@ -626,6 +626,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             cx.sfx(Sfx::Knife);
             cx.p.give(Item::Candle);
             cx.p.librarian_gone = true;
+            cx.p.librarian_killed = true;
             cx.p.ritual_counter -= 1;
             cx.achieve(Achievement::JustAQuietPeep);
             cx.cat(7);
