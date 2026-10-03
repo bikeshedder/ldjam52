@@ -1,3 +1,6 @@
+// Don't open a console window next to the game in release builds on Windows
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use bevy::{
     camera::ScalingMode,
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
@@ -49,6 +52,11 @@ fn main() -> anyhow::Result<()> {
     let entity_types = load_entity_types()?;
 
     let mut app = App::new();
+    // Must be added before the `AssetPlugin` in `DefaultPlugins`
+    #[cfg(feature = "embed")]
+    app.add_plugins(bevy_embedded_assets::EmbeddedAssetPlugin {
+        mode: bevy_embedded_assets::PluginMode::ReplaceDefault,
+    });
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: String::from("ULU - The Harvest"),

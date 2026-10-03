@@ -1,0 +1,4 @@
+[build.env]
+# The asset folder to embed. Required because cross mounts `target/` outside
+# the project, so bevy_embedded_assets can't find `assets/` next to it.
+passthrough = ["BEVY_ASSET_PATH"]

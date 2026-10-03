@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Index, time::Duration};
+use std::{collections::HashMap, ops::Index, path::PathBuf, time::Duration};
 
 use anyhow::Context;
 use bevy::{
@@ -83,21 +83,45 @@ pub struct Interaction {
 
 pub fn load_entity_types() -> anyhow::Result<EntityTypes> {
     let mut types = HashMap::new();
-    let dir = "assets/entity_types";
-    for entry in
-        std::fs::read_dir(dir).with_context(|| format!("Reading directory {dir:?} failed"))?
-    {
-        let path = entry?.path();
-        // Skip non-regular and non-yaml files
-        if !path.is_file() || path.extension().is_none_or(|ext| ext != "yaml") {
+    for (path, content) in entity_type_files()? {
+        // Skip non-yaml files
+        if path.extension().is_none_or(|ext| ext != "yaml") {
             continue;
         }
-        let file =
-            std::fs::File::open(&path).with_context(|| format!("Reading {path:?} failed"))?;
-        let entity_type: EntityType =
-            serde_saphyr::from_reader(file).with_context(|| format!("Parsing {path:?} failed"))?;
+        let entity_type: EntityType = serde_saphyr::from_slice(&content)
+            .with_context(|| format!("Parsing {path:?} failed"))?;
         let entity_name = path.file_stem().unwrap().to_string_lossy().into_owned();
         types.insert(entity_name, entity_type);
     }
     Ok(EntityTypes { types })
+}
+
+/// The files in `assets/entity_types`, read from disk.
+#[cfg(not(feature = "embed"))]
+fn entity_type_files() -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
+    let dir = "assets/entity_types";
+    let mut files = Vec::new();
+    for entry in
+        std::fs::read_dir(dir).with_context(|| format!("Reading directory {dir:?} failed"))?
+    {
+        let path = entry?.path();
+        // Skip non-regular files
+        if !path.is_file() {
+            continue;
+        }
+        let content = std::fs::read(&path).with_context(|| format!("Reading {path:?} failed"))?;
+        files.push((path, content));
+    }
+    Ok(files)
+}
+
+/// The files in `assets/entity_types`, embedded into the binary.
+#[cfg(feature = "embed")]
+fn entity_type_files() -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
+    static DIR: include_dir::Dir =
+        include_dir::include_dir!("$CARGO_MANIFEST_DIR/assets/entity_types");
+    Ok(DIR
+        .files()
+        .map(|file| (file.path().to_path_buf(), file.contents().to_vec()))
+        .collect())
 }
