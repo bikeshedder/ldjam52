@@ -166,6 +166,30 @@ impl Achievement {
         }
     }
 
+    /// A hint how the achievement is obtained, without giving the solution away.
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::GodOfSleep => "Some prefer to face their destiny with their eyes closed.",
+            Self::MeowthyCultist => {
+                "Prepare a flawless ritual for a god who already knows your taste."
+            }
+            Self::WhosTheRealMaster => {
+                "Earn Ulu's highest praise without any help from the magister."
+            }
+            Self::CatUluGuidesMe => "Prepare a ritual that is even better than flawless.",
+            Self::RichHarvest => "Prepare a ritual that truly pleases Ulu.",
+            Self::FoodOfUlu => "Get harvested, even though your ritual had its flaws.",
+            Self::CatGrass => "Offer Ulu a ritual that is hard to digest.",
+            Self::Unworthy => "Stumble around in the dark once too often.",
+            Self::JustAQuietPeep => {
+                "Make sure nobody complains about running in the library again."
+            }
+            Self::YouDontFoolMe => "See through some well-meant advice.",
+            Self::WisdomOfAThousandMice => "Learn everything the magister knows about the ritual.",
+            Self::PraiseCatUluForEternity => "Meet every one of the cats of Ulu.",
+        }
+    }
+
     pub fn secret(self) -> bool {
         matches!(
             self,

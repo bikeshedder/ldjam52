@@ -1,6 +1,7 @@
 //! The actual game: exploring the cult's home, talking to its members and
 //! preparing the ritual to summon Ulu.
 
+pub mod achievements;
 pub mod audio;
 pub mod dialogue;
 pub mod ending;
@@ -41,6 +42,7 @@ impl Plugin for GamePlugin {
             .insert_resource(Meta::load())
             .init_resource::<Progress>()
             .add_plugins((
+                achievements::AchievementsPlugin,
                 audio::AudioPlugin,
                 dialogue::DialoguePlugin,
                 ending::EndingPlugin,

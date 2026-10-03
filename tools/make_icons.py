@@ -145,6 +145,27 @@ def herring():
     return img
 
 
+def medal(unlocked):
+    """Achievement icon: a medal with the head of Cat Ulu."""
+    img, d = canvas()
+    gold, dark_gold = ((240, 190, 60), (170, 120, 30)) if unlocked else ((110, 105, 100), (75, 70, 68))
+    # Ribbon
+    d.polygon(p((20, 4), (30, 4), (36, 26), (26, 26)), fill=(150, 30, 35) if unlocked else (70, 60, 60), outline=OUTLINE, width=W)
+    d.polygon(p((44, 4), (34, 4), (28, 26), (38, 26)), fill=(190, 45, 45) if unlocked else (85, 75, 75), outline=OUTLINE, width=W)
+    # Medal
+    d.ellipse(p((10, 20), (54, 62)), fill=dark_gold, outline=OUTLINE, width=W)
+    d.ellipse(p((15, 25), (49, 57)), fill=gold)
+    # Cat head with ears and glowing eyes
+    cat = (45, 35, 40) if unlocked else (60, 58, 56)
+    d.polygon(p((20, 34), (22, 24), (28, 30)), fill=cat)
+    d.polygon(p((44, 34), (42, 24), (36, 30)), fill=cat)
+    d.ellipse(p((20, 28), (44, 52)), fill=cat)
+    eye = (255, 60, 30) if unlocked else (120, 115, 110)
+    d.ellipse(p((25, 36), (30, 41)), fill=eye)
+    d.ellipse(p((34, 36), (39, 41)), fill=eye)
+    return img
+
+
 ICONS = {
     "knife": knife(),
     "candle": candle(False),
@@ -157,6 +178,8 @@ ICONS = {
     "perfect_raven_feather": feather((40, 40, 50, 255), False),
     "wine": wine(),
     "red_herring": herring(),
+    "achievement": medal(True),
+    "achievement_locked": medal(False),
 }
 
 if __name__ == "__main__":

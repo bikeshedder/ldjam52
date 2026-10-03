@@ -20,6 +20,7 @@ impl Plugin for Menu {
             .init_resource::<MenuSelection>()
             // Systems to handle the main menu screen
             .add_systems(OnEnter(MenuState::Main), main_menu_setup)
+            .add_systems(OnEnter(MenuState::Achievements), achievements_setup)
             .add_systems(Update, menu_navigation.run_if(in_state(AppState::Menu)));
     }
 }
@@ -38,9 +39,9 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     // Common style for all buttons on the screen
     let button_node = Node {
-        width: Val::Px(250.0),
-        height: Val::Px(65.0),
-        margin: UiRect::all(Val::Px(20.0)),
+        width: Val::Px(320.0),
+        height: Val::Px(60.0),
+        margin: UiRect::all(Val::Px(10.0)),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
         ..default()
@@ -143,6 +144,17 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
                  */
                 (
                     Button,
+                    button_node.clone(),
+                    BackgroundColor(NORMAL_BUTTON),
+                    MenuButtonAction::Achievements,
+                    children![(
+                        Text::new("Achievements"),
+                        button_text_font.clone(),
+                        TextColor(TEXT_COLOR)
+                    )],
+                ),
+                (
+                    Button,
                     button_node,
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Quit,
@@ -201,34 +213,180 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
 enum MenuState {
     #[default]
     Main,
-    Settings,
-    SettingsDisplay,
-    SettingsSound,
+    Achievements,
 }
 
 // All actions that can be triggered from a button click
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
 enum MenuButtonAction {
     Play,
-    Settings,
-    SettingsDisplay,
-    SettingsSound,
+    Achievements,
     BackToMainMenu,
-    BackToSettings,
     Quit,
 }
 
-/// The buttons of the main menu from top to bottom.
-const MAIN_MENU: [MenuButtonAction; 2] = [MenuButtonAction::Play, MenuButtonAction::Quit];
+impl MenuState {
+    /// The buttons of the screen from top to bottom.
+    fn buttons(self) -> &'static [MenuButtonAction] {
+        match self {
+            Self::Main => &[
+                MenuButtonAction::Play,
+                MenuButtonAction::Achievements,
+                MenuButtonAction::Quit,
+            ],
+            Self::Achievements => &[MenuButtonAction::BackToMainMenu],
+        }
+    }
+}
 
-/// Index of the highlighted button in [`MAIN_MENU`].
+/// Index of the highlighted button in [`MenuState::buttons`].
 #[derive(Resource, Default)]
 struct MenuSelection(usize);
 
+fn achievements_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta: Res<Meta>) {
+    commands.insert_resource(MenuSelection::default());
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    let text = |content: &str, size: f32, color: Color| {
+        (
+            Text::new(content),
+            TextFont {
+                font: font.clone().into(),
+                font_size: size.into(),
+                ..default()
+            },
+            TextColor(color),
+        )
+    };
+    let entries: Vec<_> = Achievement::ALL
+        .iter()
+        .map(|achievement| {
+            let unlocked = meta.achievements.contains(achievement);
+            let hidden = achievement.secret() && !unlocked;
+            let (title, description) = if hidden {
+                ("???", "A secret achievement. Keep playing to discover it.")
+            } else {
+                (achievement.title(), achievement.description())
+            };
+            let icon = if unlocked {
+                "icons/achievement.png"
+            } else {
+                "icons/achievement_locked.png"
+            };
+            let (title_color, description_color) = if unlocked {
+                (Color::WHITE, Color::srgb(0.7, 0.7, 0.7))
+            } else {
+                (Color::srgb(0.55, 0.55, 0.55), Color::srgb(0.42, 0.42, 0.42))
+            };
+            (
+                Node {
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(10.0),
+                    padding: UiRect::all(Val::Px(6.0)),
+                    border_radius: BorderRadius::all(Val::Px(8.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgb(0.13, 0.12, 0.13)),
+                children![
+                    (
+                        ImageNode::new(asset_server.load(icon)),
+                        Node {
+                            width: Val::Px(44.0),
+                            height: Val::Px(44.0),
+                            flex_shrink: 0.0,
+                            ..default()
+                        },
+                    ),
+                    (
+                        Node {
+                            flex_direction: FlexDirection::Column,
+                            flex_shrink: 1.0,
+                            ..default()
+                        },
+                        children![
+                            text(title, 18.0, title_color),
+                            text(description, 14.0, description_color),
+                        ],
+                    ),
+                ],
+            )
+        })
+        .collect();
+
+    let root = commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            DespawnOnExit(MenuState::Achievements),
+        ))
+        .id();
+    let panel = commands
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(10.0),
+                padding: UiRect::all(Val::Px(20.0)),
+                ..default()
+            },
+            BackgroundColor(MENU_BG),
+            ChildOf(root),
+        ))
+        .id();
+    commands.spawn((text("Achievements", 36.0, TEXT_COLOR), ChildOf(panel)));
+    commands.spawn((
+        text(
+            &format!(
+                "{} of {} unlocked",
+                meta.achievements.len(),
+                Achievement::ALL.len()
+            ),
+            18.0,
+            Color::srgb(0.95, 0.85, 0.55),
+        ),
+        ChildOf(panel),
+    ));
+    let grid = commands
+        .spawn((
+            Node {
+                display: Display::Grid,
+                grid_template_columns: vec![GridTrack::px(440.0); 2],
+                column_gap: Val::Px(10.0),
+                row_gap: Val::Px(8.0),
+                ..default()
+            },
+            ChildOf(panel),
+        ))
+        .id();
+    for entry in entries {
+        commands.spawn((entry, ChildOf(grid)));
+    }
+    commands.spawn((
+        Button,
+        Node {
+            width: Val::Px(200.0),
+            height: Val::Px(50.0),
+            margin: UiRect::top(Val::Px(6.0)),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor(NORMAL_BUTTON),
+        MenuButtonAction::BackToMainMenu,
+        ChildOf(panel),
+        children![text("Back", 28.0, TEXT_COLOR)],
+    ));
+}
+
 /// Navigates the menu with keyboard, gamepad or mouse.
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn menu_navigation(
     input: MenuInput,
+    state: Res<State<MenuState>>,
     mut selection: ResMut<MenuSelection>,
     mut buttons: Query<(Ref<Interaction>, &MenuButtonAction, &mut BackgroundColor), With<Button>>,
     mut app_exit: MessageWriter<AppExit>,
@@ -237,16 +395,21 @@ fn menu_navigation(
     mut game_state: ResMut<NextState<AppState>>,
 ) {
     let actions = input.read();
-    let count = MAIN_MENU.len();
+    let screen = state.get().buttons();
+    let count = screen.len();
     if actions.up {
         selection.0 = (selection.0 + count - 1) % count;
     }
     if actions.down {
         selection.0 = (selection.0 + 1) % count;
     }
-    let mut chosen = actions.confirm.then_some(MAIN_MENU[selection.0]);
+    selection.0 = selection.0.min(count - 1);
+    let mut chosen = actions.confirm.then_some(screen[selection.0]);
+    if actions.back && *state.get() != MenuState::Main {
+        chosen = Some(MenuButtonAction::BackToMainMenu);
+    }
     for (interaction, action, mut color) in &mut buttons {
-        let index = MAIN_MENU.iter().position(|a| a == action);
+        let index = screen.iter().position(|a| a == action);
         if interaction.is_changed() {
             match *interaction {
                 Interaction::Pressed => chosen = Some(*action),
@@ -272,10 +435,7 @@ fn menu_navigation(
             app_exit.write(AppExit::Success);
         }
         MenuButtonAction::Play => game_state.set(AppState::Game),
-        MenuButtonAction::Settings => menu_state.set(MenuState::Settings),
-        MenuButtonAction::SettingsDisplay => menu_state.set(MenuState::SettingsDisplay),
-        MenuButtonAction::SettingsSound => menu_state.set(MenuState::SettingsSound),
+        MenuButtonAction::Achievements => menu_state.set(MenuState::Achievements),
         MenuButtonAction::BackToMainMenu => menu_state.set(MenuState::Main),
-        MenuButtonAction::BackToSettings => menu_state.set(MenuState::Settings),
     }
 }

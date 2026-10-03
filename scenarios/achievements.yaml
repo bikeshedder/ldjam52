@@ -1,0 +1,27 @@
+# The achievements list in the main menu and the pop-up when unlocking one.
+# Run without a savegame.yaml to start without achievements.
+- screenshot: menu
+- press: Down
+- press: Space
+- wait: 0.5
+- screenshot: achievements_list
+- press: Escape
+- wait: 0.5
+- expect_phase: None
+- start_game
+- skip_dialogues: true
+- wait: 1.0
+- skip_dialogues: false
+- teleport: [2.0, 2.6]
+- press: Space   # examine the bed
+- press: Space   # reveal the text
+- press: Down    # select "Sleep"
+- press: Space
+- wait: 0.6
+- screenshot: achievement_toast
+- press: Space
+- press: Space
+- press: Space
+- press: Space
+- wait: 1.0
+- screenshot: toast_stays_after_the_game
