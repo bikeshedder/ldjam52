@@ -1,0 +1,283 @@
+,,,,,,,,,,,,,,,,,,,,,,,,
+,Play,Preset,Gegenstand/Ort/NPC,,Interaktion B1,,Bedingung,Interaktion B2,,Bedingung,Interaktion B3,Bedingung,Interaktion B4,Bedingung,Interaktion B5,Bedingung,Ergebnis B1,Ergebnis B2,Ergebnis B3,Ergebnis B4,Ergebnis B5,Passiv,1 Passiv Ergebnis,2 Passiv Ergebnis
+Gegenstand,x,x,"Bett
+intakt",D1,Sleep,D2,-,Kissen zerreißen,D3,-,Kissen zerschneiden,Messer II Ausgerüstetes Messer,-,-,-,-,Spielende 1. Achievement God of Sleep Cat 1,"Erhalte: 
+zerknickte Feder
+ 
+Bett zerstört ","Erhalte: 
+perfekte Feder
+
+ Bett zerstört",-,-,"Schlafen mit:
+
+Metha Wissen","Erhalte
+
+bestätigtes Metha Wissen",-
+Gegenstand,,,"Bett
+zerstört",D4,Schlafen legen,D5,-,Dialog abbrechen,,-,-,-,-,-,-,-,Spielende 1. Achievement God of Sleep Cat 1,Zeitkosten ODER kein Effekt,-,-,-,"Schlafen mit:
+
+Metha Wissen","Erhalte
+
+bestätigtes Metha Wissen",-
+Gegenstand,x,x,"Kamin
+mit Feuer",,Feuer Löschen,,-,Aufwärmen,,-,Kerze anzünden,Kerze,-,-,-,-,"Kamin
+ohne Feuer",deine Pfoten sind schön warm,"Erhalte: 
+brennende Kerze
+",-,-,"Bei jeder Interaktion mit 
+Stinkekäse im Inventar.
+","Erhalte: 
+geschmolzener Käse
+   Ritualcounter + 1",-
+Gegenstand,,,"Kamin
+ohne Feuer",,"Feder
+ beschmutzen",,"
+zerknickte
+Feder","Feder
+ beschmutzen",,"
+perfekte
+Feder",-,-,-,-,-,-,"Erhalte: 
+zerknickte
+Rabenfeder Ritualcounter + 1","Erhalte: 
+perfekte
+Rabenfeder",-,-,-,-,-,-
+Ort,x,x,"Dunkler
+Ritualraum",,"Triggerevent
+Stolpern",,"keine Kerze ||
+nicht brennende Kerze II Triggereventcounter < 10","Raum mit Kerze
+ ausleuchten",,brennende Kerze,"Triggerevent
+Stolpern FINAL","keine Kerze ||
+nicht brennende Kerze II Triggereventcounter = 10",-,-,-,-,"Boden im Ritualraum
+mit
+blutigem Teppich
+
+Triggereventcounter +1","Ausgeleuchteter
+ Ritualraum",Spielende 6 Achievement Unworthy Cat 6,-,-,-,-,-
+Ort,,,"Ausgeleuchteter
+Ritualraum",,-,,-,-,,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+Gegenstand,,,"Boden im Ritualraum
+mit
+blutigen Teppich",,Teppich einrollen,,"Ausgeleuchteter
+Ritualraum ",-,,-,-,-,-,-,-,-,nackter Boden,-,-,-,-,-,-,-
+Gegenstand,,,"Boden im Ritualraum
+mit
+sauberen Teppich",,Teppich einrollen,,"Ausgeleuchteter
+Ritualraum ",-,,-,-,-,-,-,-,-,nackter Boden,-,-,-,-,-,-,-
+Gegenstand,,,nackter Boden,,"Pentagramm
+zeichnen
+
+ Floorb: Floorb1",,Messer II Ausgerüstetes Messer,"Pentagramm
+zeichnen
+
+ Floorb: Floorb2",,Messer + Wein II Ausgerüstetes Messer + Wein,"Pentagramm
+zeichnen
+
+ Floorb: Floorb3","Messer + Hering II Ausgerüstetes Messer + Hering
+
+NICHT: Wein",-,-,-,-,Erhalte Wissen um Blut (enables M3aS_BloodCc ),"unfertiger Ritualboden
+
+Ritualcounter + 1",unfertiger Ritualboden,-,-,-,-,-
+Gegenstand,,,"Ritualkreis
+unfertig",,"Rabenfedern 
+platzieren",,"perfekt
+Rabenfeder
+ ||
+zerknickte
+Rabenfeder","Kerze 
+platzieren",,"brennende Kerze
+II
+Kerze","Räucherwerk
+platzieren","Stinkekäse
+ ||
+geschmolzener Stinkekäse",-,-,-,-,"RK ob & RK +1/3
+||
+RK +1/3","RK ob & RK +1/3
+||
+-","RK ob & RK +1/3
+||
+RK +1/3",-,-,-,"RK ob & RK
+3/3
+
+Ritualkreis
+bereit",-
+Gegenstand,,,"Ritualkreis 
+bereit",,Ulu anrufen,,Ritualcounter < 1 und Cat 3,Ulu anrufen,,"Ritualcounter < 2
+und
+nicht Cat 3",Ulu anrufen,Ritualcounter < 4,Ulu anrufen,Ritualcounter = 4,-,-,"Spielende 2 Achievement Meowthy Cultist
+
+Wenn Magister M Status 1: Who's the real master?
+
+Wenn Ritualcounter <0 Secret Achievement: Cat Ulu guides me
+
+Cat 2","Spielende 3 Achievement Rich Harvest
+Cat 3",Spielende 4: Achievement Food of Ulu Cat 4,Spielende 5: Achievement Cat grass Cat 5,-,"Wenn Meta Stats Cat 1 Cat 2 usw. bis Cat 8 = true, dann: 
+
+Secret achievement: Praise Cat Ulu for eternity ",-,-
+NPC,x,x,"Magister
+1",," Erste Hilfe 
+M1a_H",,"nicht: Wissen um Magister
+
+Bibliothekar 1","
+Erste Hilfe nach Aufforderung
+
+M1b_1.1a_bM
+",,"Wissen um Magister
+
+
+Bibliothekar 2",Erste Hilfe nach Gespräch mit L,"nicht: Wissen um Magister
+
+Bibliothekar 2",M1a_S -> RITUALSTRANG!!!,je nach Dialogoptionen ggf. Wissen um Blut,-,-,"Erhalte:
+Wissen um Kerze","Erhalte:
+Wissen um Kerze","Erhalte:
+Wissen um Kerze","Wenn alle Dialogoptionen in S ausgewählt wurden: Wisdom of a thousand mice 
+
+Je nach Dialogoption: Gegenstand: Erhalte Weinbeutel",-,-,-,
+NPC,,,"Magister
+2",,"Dialogstrang S2 ",,-,-,,-,-,-,-,-,-,-,Wenn alle Dialogoptionen in S ausgewählt wurden: Wisdom of a thousand mice Je nach Dialogoption: Gegenstand: Erhalte Weinbeutel,-,-,-,-,-,-,
+NPC,x,x,"Bibliothekar 
+
+von Vorne
+
+1 ",,"
+Um Hilfe bitten
+
+Dialog 1.1a",,"Spieler hat nicht:
+
+Wissen um Kerze","
+Nach Kerze Fragen
+
+Dialog 1.1b",,Wissen um Kerze,-,-,-,-,-,-," a Erhalte: 
+Kerze
+Ritualcounter + 1
+ b Erhalte: 
+Wissen um Magister
+c Erhalte:
+Meta Wissen
+ ","Erhalte: 
+Kerze 
+
+Ritualcounter + 1",-,-,-,"Auto wenn von vorne
+ herangetreten","Bibliothekar
+
+von Hinten
+
+2","Bibliothekar
+
+von Vorne
+
+2"
+NPC,,,"Bibliothekar 
+
+von Vorne
+
+2
+",,"
+Um Hilfe bitten
+
+Dialog 2.1a",,Kerze,"Nach Kerze Fragen
+
+Dialog 2.1b",,Wissen um Kerze,"You don't fool me!
+
+Dialog 2.1c","bestätigtes 
+Metha Wissen 
++ 
+Spieler hat nicht:
+Wissen um Kerze
++
+Spieler hat nicht:
+Kerze",-,-,-,-,-,"Erhalte: 
+Kerze
+
+Ritualcounter + 1","Erhalte: 
+Kerze
+
+Achievement: You don't fool me!
+
+Bibliothekar verschwunden",-,-,-,-,-
+NPC,x,x,"Bibliothekar 
+
+von Hinten
+
+1",,"Bibliothekar Ermorden
+
+Dialog 1.3",,ausgerüstetes Messer,-,,-,-,-,-,-,-,-,"Erhalte: 
+Kerze 
+
+Bibliothekar verschwunden
+
+Secret Achievement: Just a quiet peep
+
+Cat 7
+
+Ritualcounter - 1",-,-,-,-,"Ist Aktiv wenn von hinten
+ Angesprochen",-,-
+NPC,,,"Bibliothekar 
+
+von Hinten
+
+2",,"Bemerkt werden
+
+Dialog 2.2",,-,-,,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+NPC,,,"Bibliothekar 
+
+verschwunden",,-,,-,-,,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+Gegenstand,x,x,Truhe,,Truhe durchsuchen,,nicht: Messer nicht: Ausgerüstetes Messer,Truhe durchsuchen,D45,Messer II Ausgerüstetes Messer,-,-,-,-,-,-,"Erhalte: 
+Messer",-,-,-,-,-,-,-
+Gegenstand,x,x,Tisch,,Tisch anschauen,,nicht: Käse,Tisch anschauen,,Käse,-,-,-,-,-,-,"Erhalte: 
+Käse",-,-,-,-,"Schlafen mit:
+
+Metha Wissen","Erhalte
+
+bestätigtes Metha Wissen",-
+NPC/PC/Gegenstand,x,x,Refklektion/Char/Gottheit = Gegenstand Spiegel,,Dialogstrang S ohne Ergebnis,,"
+Magister 2",Dialogstrang S mit Ergebnis,,"
+Magister 1",Messer ausrüsten,"Messer + 
+
+Magister 1",-,-,-,-,-,"Erhalte: Roter Hering
+
+Cat 8","Erhalte: Ausgerüstetes Messer
+
+
+Cat 8",-,-,-,-,-
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,Käfer vergraben,,toter Käfer,-,,-,-,-,-,-,-,-,"Erhalte: 
+Graberde",,,,,,,
+,,,,,,,-,-,,-,-,-,-,-,-,-,"Erhalte: 
+unvollständige
+ Anrufung 1","Erhalte: 
+unvollständige
+ Anrufung 2",,,,,,
+,,,,,,,-,-,,-,-,-,-,-,-,-,"Erhalte: 
+falsche Anrufung",,,,,,,
+,,,,,,,,,,,,,,,,,"Erhalte: 
+toter Käfer",,,,,,,
