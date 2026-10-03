@@ -1,10 +1,7 @@
 use bevy::{
-    input::{Axis, Input},
+    input::{ButtonInput, gamepad::Gamepad},
     math::Vec3,
-    prelude::{
-        Component, Gamepad, GamepadAxis, GamepadAxisType, GamepadButton, GamepadButtonType,
-        KeyCode, Res,
-    },
+    prelude::{Component, GamepadButton, KeyCode},
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -31,11 +28,11 @@ pub struct PlayerInput {
 }
 
 impl PlayerInput {
-    pub fn from_keys(key: Res<Input<KeyCode>>) -> Self {
-        let key_left = key_to_analog(&key, &[KeyCode::A, KeyCode::Left], -1.0);
-        let key_right = key_to_analog(&key, &[KeyCode::D, KeyCode::Right], 1.0);
-        let key_up = key_to_analog(&key, &[KeyCode::W, KeyCode::Up], 1.0);
-        let key_down = key_to_analog(&key, &[KeyCode::S, KeyCode::Down], -1.0);
+    pub fn from_keys(key: &ButtonInput<KeyCode>) -> Self {
+        let key_left = key_to_analog(key, &[KeyCode::KeyA, KeyCode::ArrowLeft], -1.0);
+        let key_right = key_to_analog(key, &[KeyCode::KeyD, KeyCode::ArrowRight], 1.0);
+        let key_up = key_to_analog(key, &[KeyCode::KeyW, KeyCode::ArrowUp], 1.0);
+        let key_down = key_to_analog(key, &[KeyCode::KeyS, KeyCode::ArrowDown], -1.0);
         Self {
             x: key_right + key_left,
             y: key_up + key_down,
@@ -43,58 +40,14 @@ impl PlayerInput {
             back: key.just_pressed(KeyCode::Escape),
         }
     }
-    pub fn from_gamepad(
-        gamepad: Gamepad,
-        axis: &Res<Axis<GamepadAxis>>,
-        button: &Res<Input<GamepadButton>>,
-    ) -> Self {
-        let axis_lx = GamepadAxis {
-            gamepad,
-            axis_type: GamepadAxisType::LeftStickX,
-        };
-        let axis_ly = GamepadAxis {
-            gamepad,
-            axis_type: GamepadAxisType::LeftStickY,
-        };
-        let dpad_left = GamepadButton {
-            gamepad,
-            button_type: GamepadButtonType::DPadLeft,
-        };
-        let dpad_right = GamepadButton {
-            gamepad,
-            button_type: GamepadButtonType::DPadRight,
-        };
-        let dpad_up = GamepadButton {
-            gamepad,
-            button_type: GamepadButtonType::DPadUp,
-        };
-        let dpad_down = GamepadButton {
-            gamepad,
-            button_type: GamepadButtonType::DPadDown,
-        };
-        let interact = GamepadButton {
-            gamepad,
-            button_type: GamepadButtonType::South,
-        };
-        let back = GamepadButton {
-            gamepad,
-            button_type: GamepadButtonType::East,
-        };
-        let dpadx = match (button.pressed(dpad_left), button.pressed(dpad_right)) {
-            (true, false) => -1.0,
-            (false, true) => 1.0,
-            _ => 0.0,
-        };
-        let dpady = match (button.pressed(dpad_up), button.pressed(dpad_down)) {
-            (true, false) => 1.0,
-            (false, true) => -1.0,
-            _ => 0.0,
-        };
+    pub fn from_gamepad(gamepad: &Gamepad) -> Self {
+        let stick = gamepad.left_stick();
+        let dpad = gamepad.dpad();
         Self {
-            x: (deadzone(axis.get(axis_lx).unwrap_or(0.0)) + dpadx).clamp(-1.0, 1.0),
-            y: (deadzone(axis.get(axis_ly).unwrap_or(0.0)) + dpady).clamp(-1.0, 1.0),
-            interact: button.pressed(interact),
-            back: button.just_pressed(back),
+            x: (deadzone(stick.x) + dpad.x).clamp(-1.0, 1.0),
+            y: (deadzone(stick.y) + dpad.y).clamp(-1.0, 1.0),
+            interact: gamepad.pressed(GamepadButton::South),
+            back: gamepad.just_pressed(GamepadButton::East),
         }
     }
     pub fn merge(&mut self, inputs: impl Iterator<Item = PlayerInput>) {
@@ -110,20 +63,12 @@ impl PlayerInput {
 }
 
 fn deadzone(value: f32) -> f32 {
-    if value.abs() > 0.2 {
-        value
-    } else {
-        0.0
-    }
+    if value.abs() > 0.2 { value } else { 0.0 }
 }
 
-fn key_to_analog(key: &Res<Input<KeyCode>>, codes: &[KeyCode], value: f32) -> f32 {
+fn key_to_analog(key: &ButtonInput<KeyCode>, codes: &[KeyCode], value: f32) -> f32 {
     let pressed = codes.iter().any(|&code| key.pressed(code));
-    if pressed {
-        value
-    } else {
-        0.0
-    }
+    if pressed { value } else { 0.0 }
 }
 
 #[derive(Component, Debug)]

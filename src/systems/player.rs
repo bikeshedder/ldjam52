@@ -1,9 +1,4 @@
-use bevy::{
-    math::vec3,
-    prelude::{Query, Res, Transform},
-    sprite::TextureAtlasSprite,
-    time::Time,
-};
+use bevy::{math::vec3, prelude::*};
 
 use crate::components::{
     animation::AnimationState,
@@ -15,14 +10,14 @@ pub const PLAYER_SPEED_Y: f32 = 150.0;
 
 pub fn player_system(
     time: Res<Time>,
-    mut query: Query<(
+    query: Single<(
         &mut Player,
         &mut Transform,
         &mut AnimationState,
-        &mut TextureAtlasSprite,
+        &mut Sprite,
     )>,
 ) {
-    let (mut player, mut transform, mut animation, mut sprite) = query.single_mut();
+    let (mut player, mut transform, mut animation, mut sprite) = query.into_inner();
     let delta = time.delta().as_secs_f32();
 
     if player.is_moving() {

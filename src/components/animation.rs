@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{prelude::Component, utils::HashMap};
+use bevy::{platform::collections::HashMap, prelude::Component};
 
 #[derive(Component, Debug)]
 pub struct Animation {

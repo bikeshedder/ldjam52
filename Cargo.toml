@@ -1,18 +1,18 @@
 [package]
 name = "ldjam52"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.68"
-bevy = { version = "0.9.1", features = ["dynamic"] }
-log = "0.4.17"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_yaml = "0.9.16"
-#tiled = "0.10.1"
-tiled = { git = "https://github.com/mapeditor/rs-tiled", commit = "763e0223ce5e97dff464a8bac346996c6835046d" }
+anyhow = "1.0.104"
+bevy = { version = "0.19.1", features = ["dynamic_linking"] }
+log = "0.4.34"
+serde = { version = "1.0.229", features = ["derive"] }
+serde-saphyr = "1.3.0"
+thiserror = "2.0.21"
+tiled = "0.16.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

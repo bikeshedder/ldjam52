@@ -1,9 +1,9 @@
-use std::{borrow::Cow, ops::Index, time::Duration};
+use std::{collections::HashMap, ops::Index, time::Duration};
 
+use anyhow::Context;
 use bevy::{
+    image::TextureAtlasLayout,
     prelude::{Handle, Image, Resource},
-    sprite::TextureAtlas,
-    utils::HashMap,
 };
 use serde::Deserialize;
 
@@ -42,14 +42,16 @@ pub enum Loaded {
 
 #[derive(Debug)]
 pub struct LoadedAnimation {
-    pub atlas: Handle<TextureAtlas>,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
     pub frames: Vec<(usize, Duration)>,
 }
 
 #[derive(Debug)]
 pub struct LoadedAnimations {
-    pub atlas: Handle<TextureAtlas>,
-    pub frames: HashMap<String, Vec<(usize, Duration)>>,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub frames: bevy::platform::collections::HashMap<String, Vec<(usize, Duration)>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -79,31 +81,23 @@ pub struct Interaction {
     pub max_distance: u16,
 }
 
-pub fn load_entity_types() -> Result<EntityTypes, anyhow::Error> {
-    let mut entity_types: HashMap<String, EntityType> = HashMap::default();
+pub fn load_entity_types() -> anyhow::Result<EntityTypes> {
+    let mut types = HashMap::new();
     let dir = "assets/entity_types";
-    for entry in std::fs::read_dir(dir)
-        .unwrap_or_else(|e| panic!("Reading directory {:?} failed: {:?}", dir, e))
+    for entry in
+        std::fs::read_dir(dir).with_context(|| format!("Reading directory {dir:?} failed"))?
     {
-        let entry = entry?;
-        if !entry.metadata()?.is_file() {
-            // Skip non-regular files
+        let path = entry?.path();
+        // Skip non-regular and non-yaml files
+        if !path.is_file() || path.extension().is_none_or(|ext| ext != "yaml") {
             continue;
         }
-        let path = entry.path();
-        let ext = path.extension().map(|ext| ext.to_string_lossy());
-        if ext != Some(Cow::Borrowed("yaml")) {
-            // Skip non-yaml files
-            continue;
-        }
-        let file = std::fs::File::open(path.clone())
-            .unwrap_or_else(|e| panic!("Reading {:?} failed: {:?}", path, e));
-        let entity_type: EntityType = serde_yaml::from_reader(file)
-            .unwrap_or_else(|e| panic!("Parsing {:?} failed: {:?}", path, e));
-        let entity_name = path.file_stem().unwrap().to_string_lossy();
-        entity_types.insert(entity_name.to_string(), entity_type);
+        let file =
+            std::fs::File::open(&path).with_context(|| format!("Reading {path:?} failed"))?;
+        let entity_type: EntityType =
+            serde_saphyr::from_reader(file).with_context(|| format!("Parsing {path:?} failed"))?;
+        let entity_name = path.file_stem().unwrap().to_string_lossy().into_owned();
+        types.insert(entity_name, entity_type);
     }
-    Ok(EntityTypes {
-        types: entity_types,
-    })
+    Ok(EntityTypes { types })
 }

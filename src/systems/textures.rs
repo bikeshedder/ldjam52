@@ -1,16 +1,27 @@
 use std::time::Duration;
 
+use anyhow::Context;
 use bevy::{
-    asset::LoadState,
-    prelude::{AssetServer, Assets, Handle, Image, Res, ResMut, State},
-    sprite::{TextureAtlas, TextureAtlasBuilder},
-    utils::HashMap,
+    image::{TextureAtlasBuilder, TextureAtlasLayout},
+    platform::collections::HashMap,
+    prelude::*,
 };
 
 use crate::{
+    AppState,
     data::entity_types::{EntityImage, EntityTypes, Loaded, LoadedAnimations},
-    AppState, ImageHandles,
 };
+
+/// Handles of all entity type images which need to be loaded before leaving
+/// the [`AppState::Loading`] state, keyed by asset path.
+#[derive(Default, Resource)]
+pub struct ImageHandles {
+    handles: HashMap<String, Handle<Image>>,
+}
+
+fn image_path(entity_name: &str, image: &str) -> String {
+    format!("entity_types/{entity_name}/{image}")
+}
 
 pub fn load_textures(
     mut entity_types: ResMut<EntityTypes>,
@@ -20,19 +31,16 @@ pub fn load_textures(
     for (name, entity_type) in entity_types.types.iter_mut() {
         match &entity_type.image {
             EntityImage::Static(image) => {
-                let handle = asset_server.load::<Image, _>(&format!("entity_types/{name}/{image}"));
-                image_handles.add(handle.clone());
+                let path = image_path(name, image);
+                let handle = asset_server.load(&path);
+                image_handles.handles.insert(path, handle.clone());
                 entity_type.loaded = Some(Loaded::Static(handle));
             }
             EntityImage::Animations(animations) => {
-                for animation in animations.values() {
-                    for frame in animation.iter() {
-                        let image = &frame.image;
-                        let handle =
-                            asset_server.load::<Image, _>(&format!("entity_types/{name}/{image}"));
-                        image_handles.add(handle.clone());
-                        entity_type.loaded = Some(Loaded::Static(handle));
-                    }
+                for frame in animations.values().flatten() {
+                    let path = image_path(name, &frame.image);
+                    let handle = asset_server.load(&path);
+                    image_handles.handles.insert(path, handle);
                 }
             }
             _ => unimplemented!(),
@@ -41,20 +49,25 @@ pub fn load_textures(
 }
 
 pub fn check_textures(
-    mut state: ResMut<State<AppState>>,
-    image_handles: ResMut<ImageHandles>,
+    mut next_state: ResMut<NextState<AppState>>,
+    image_handles: Res<ImageHandles>,
     asset_server: Res<AssetServer>,
     mut entity_types: ResMut<EntityTypes>,
-    mut textures: ResMut<Assets<Image>>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
-    if asset_server.get_group_load_state(image_handles.handles.iter().map(|handle| handle.id()))
-        != LoadState::Loaded
-    {
-        return;
+    mut images: ResMut<Assets<Image>>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+) -> Result {
+    for (path, handle) in &image_handles.handles {
+        if asset_server.load_state(handle).is_failed() {
+            return Err(anyhow::anyhow!("Loading image {path:?} failed").into());
+        }
     }
-
-    state.set(AppState::Menu).unwrap();
+    if !image_handles
+        .handles
+        .values()
+        .all(|handle| asset_server.is_loaded_with_dependencies(handle))
+    {
+        return Ok(());
+    }
 
     for (name, entity_type) in entity_types.types.iter_mut() {
         match &entity_type.image {
@@ -63,42 +76,33 @@ pub fn check_textures(
             }
             EntityImage::Animations(animations) => {
                 let mut atlas_builder = TextureAtlasBuilder::default();
-                let frame_handles: HashMap<String, Vec<(Handle<Image>, Duration)>> = animations
-                    .iter()
-                    .map(|(animation_name, frames)| {
-                        (
-                            animation_name.clone(),
-                            frames
-                                .iter()
-                                .map(|frame| {
-                                    let file_name =
-                                        format!("entity_types/{}/{}", name, frame.image);
-                                    let handle = asset_server.get_handle(&file_name);
-                                    let texture = textures.get(&handle).unwrap();
-                                    atlas_builder.add_texture(handle.clone(), texture);
-                                    (handle, Duration::from_millis(frame.duration))
-                                })
-                                .collect(),
-                        )
-                    })
-                    .collect();
-                let atlas = atlas_builder.finish(&mut textures).unwrap();
-                let atlas_handle = texture_atlases.add(atlas);
-                let atlas = texture_atlases.get(&atlas_handle).unwrap();
+                let mut frame_handles = HashMap::<String, Vec<(AssetId<Image>, Duration)>>::new();
+                for (animation_name, frames) in animations {
+                    let frames = frames
+                        .iter()
+                        .map(|frame| {
+                            let id = image_handles.handles[&image_path(name, &frame.image)].id();
+                            let image = images.get(id).context("Image missing")?;
+                            atlas_builder.add_texture(Some(id), image);
+                            Ok((id, Duration::from_millis(frame.duration)))
+                        })
+                        .collect::<anyhow::Result<_>>()?;
+                    frame_handles.insert(animation_name.clone(), frames);
+                }
+                let (layout, sources, image) = atlas_builder.build()?;
                 entity_type.loaded = Some(Loaded::Animations(LoadedAnimations {
-                    atlas: atlas_handle,
+                    image: images.add(image),
+                    layout: layouts.add(layout),
                     frames: frame_handles
                         .into_iter()
                         .map(|(animation_name, frames)| {
-                            (
-                                animation_name,
-                                frames
-                                    .into_iter()
-                                    .map(|(handle, duration)| {
-                                        (atlas.get_texture_index(&handle).unwrap(), duration)
-                                    })
-                                    .collect(),
-                            )
+                            let frames = frames
+                                .into_iter()
+                                .map(|(id, duration)| {
+                                    (sources.texture_index(id).unwrap(), duration)
+                                })
+                                .collect();
+                            (animation_name, frames)
                         })
                         .collect(),
                 }));
@@ -106,4 +110,7 @@ pub fn check_textures(
             _ => unimplemented!(),
         }
     }
+
+    next_state.set(AppState::Menu);
+    Ok(())
 }
