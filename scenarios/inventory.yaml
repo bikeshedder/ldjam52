@@ -1,0 +1,13 @@
+# The inventory panel, empty and with items.
+- start_game
+- skip_dialogues: true
+- wait: 1.0
+- screenshot: inventory_empty
+- give: Knife
+- give: BurningCandle
+- give: StinkyCheese
+- give: PerfectRavenFeather
+- give: Wine
+- give: RedHerring
+- wait: 0.5
+- screenshot: inventory_full

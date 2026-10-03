@@ -158,13 +158,38 @@ fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
         GlobalZIndex(30),
         DespawnOnExit(AppState::Game),
         children![
+            // A framed panel, so it's obvious that this is the inventory.
             (
                 Node {
                     flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(4.0),
+                    row_gap: Val::Px(6.0),
+                    min_width: Val::Px(200.0),
+                    padding: UiRect::all(Val::Px(10.0)),
+                    border: UiRect::all(Val::Px(2.0)),
+                    border_radius: BorderRadius::all(Val::Px(10.0)),
                     ..default()
                 },
-                InventoryList,
+                BackgroundColor(Color::srgba(0.05, 0.03, 0.06, 0.8)),
+                BorderColor::all(Color::srgb(0.45, 0.12, 0.1)),
+                children![
+                    (
+                        Text::new("Inventory"),
+                        TextFont {
+                            font: font.clone().into(),
+                            font_size: 16.0.into(),
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.75, 0.55, 0.2)),
+                    ),
+                    (
+                        Node {
+                            flex_direction: FlexDirection::Column,
+                            row_gap: Val::Px(2.0),
+                            ..default()
+                        },
+                        InventoryList,
+                    ),
+                ],
             ),
             (
                 Text::default(),
@@ -244,16 +269,25 @@ fn update_inventory(
     }
     commands.entity(*list).despawn_related::<Children>();
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    if progress.inventory.is_empty() {
+        commands.spawn((
+            Text::new("Empty"),
+            TextFont {
+                font: font.clone().into(),
+                font_size: 16.0.into(),
+                ..default()
+            },
+            TextColor(Color::srgb(0.45, 0.45, 0.45)),
+            ChildOf(*list),
+        ));
+    }
     for item in &progress.inventory {
         commands.spawn((
             Node {
                 align_items: AlignItems::Center,
                 column_gap: Val::Px(8.0),
-                padding: UiRect::new(Val::Px(4.0), Val::Px(12.0), Val::Px(2.0), Val::Px(2.0)),
-                border_radius: BorderRadius::all(Val::Px(8.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.05, 0.03, 0.06, 0.65)),
             ChildOf(*list),
             children![
                 (
