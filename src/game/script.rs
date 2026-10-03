@@ -7,8 +7,8 @@
 use super::{
     audio::Sfx,
     progress::{
-        Achievement, CAT_COUNT, Carpet, Ending, Item, Meta, Progress, RitualCircle, TOPIC_COUNT,
-        Topic,
+        Achievement, CAT_COUNT, Carpet, Ending, Item, Meta, Progress, RitualCircle, RitualNote,
+        TOPIC_COUNT, Topic,
     },
 };
 
@@ -218,10 +218,18 @@ impl<'a> Ctx<'a> {
             self.achieve(Achievement::PraiseCatUluForEternity);
         }
     }
+    /// Changes the ritual counter and remembers why.
+    fn ritual(&mut self, change: i32, text: &'static str) {
+        self.p.ritual_counter += change;
+        self.p.ritual_notes.push(RitualNote { change, text });
+    }
     fn librarian_candle(&mut self) {
         self.p.give(Item::Candle);
         self.p.librarian_gave_candle = true;
-        self.p.ritual_counter += 1;
+        self.ritual(
+            1,
+            "The candle was a gift from the librarian, not a sign of your own devotion.",
+        );
     }
     fn ask(&mut self, topic: Topic) {
         self.p.magister_topics.insert(topic);
@@ -408,7 +416,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 let mut s = s;
                 if cx.has(Item::StinkyCheese) {
                     cx.p.replace(Item::StinkyCheese, Item::MeltedCheese);
-                    cx.p.ritual_counter += 1;
+                    cx.ritual(1, "The incense melted into a sticky clump by the fire.");
                     s = s.n("The heat of the fire is getting to the cheese in your pocket. It melts into a soft and even smellier clump.");
                 }
                 let candle = cx.has(Item::Candle);
@@ -443,7 +451,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             cx.sfx(Sfx::Feather);
             if cx.has(Item::CreasedFeather) {
                 cx.p.replace(Item::CreasedFeather, Item::CreasedRavenFeather);
-                cx.p.ritual_counter += 1;
+                cx.ritual(1, "The raven feather was torn and creased.");
             } else {
                 cx.p.replace(Item::PerfectFeather, Item::PerfectRavenFeather);
             }
@@ -615,7 +623,10 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             cx.p.give(Item::Candle);
             cx.p.librarian_gave_candle = true;
             cx.p.librarian_gone = true;
-            cx.p.ritual_counter += 1;
+            cx.ritual(
+                1,
+                "The candle came from the librarian's pouch, not from your own devotion.",
+            );
             s.l("You think I should rest. Why?")
                 .c("Isn't it exhausting to guard the library all night? You also need to take time to rest.")
                 .l("Hm. I think you are right, a small nap can't hurt.")
@@ -627,7 +638,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             cx.p.give(Item::Candle);
             cx.p.librarian_gone = true;
             cx.p.librarian_killed = true;
-            cx.p.ritual_counter -= 1;
+            cx.ritual(-1, "The librarian's silence pleased Ulu.");
             cx.achieve(Achievement::JustAQuietPeep);
             cx.cat(7);
             s.n("The librarian makes a quiet peep and sinks silently to the floor. You take the bloody knife out of his dead body. In his pockets you find a candle. You are sure that you will need it.")
@@ -830,7 +841,11 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 cx.sfx(Sfx::PentagramDraw);
                 cx.p.take(Item::Wine);
                 cx.p.circle = RitualCircle::Unfinished;
-                cx.p.ritual_counter += 1;
+                cx.p.circle_blood = Some(Item::Wine);
+                cx.ritual(
+                    1,
+                    "The pentagram was drawn in cheap wine instead of your own blood.",
+                );
                 s.n("You take out the bag of wine the magister gave to you and cut it with the knife. Then you cautiously spill the wine on the clean floor, drawing a red circle and a star with five corners. This is a decent pentagram. Ulu will be pleased with you.")
             } else if cx.has(Item::RedHerring) {
                 s.c("Ok, now is the time to draw the pentagram.")
@@ -853,6 +868,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             cx.sfx(Sfx::PentagramDraw);
             cx.p.take(Item::RedHerring);
             cx.p.circle = RitualCircle::Unfinished;
+            cx.p.circle_blood = Some(Item::RedHerring);
             s.n("You cautiously cut the red herring and are quite surprised to see red blood coming out of it. You use it to paint the pentagram on the floor. Let's hope Ulu will be satisfied even if you didn't use your own blood.")
         }
         Node::PlaceFeather => {
@@ -896,6 +912,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
         }
         Node::Summon => {
             cx.sfx(Sfx::Meow);
+            cx.p.ritual_performed = true;
             let counter = cx.p.ritual_counter;
             let rich_harvest = cx.meta.cats.contains(&3);
             let next = if counter < 1 && rich_harvest {
@@ -1056,6 +1073,12 @@ fn ritual(cx: &mut Ctx, s: Scene) -> Scene {
 mod tests {
     use super::*;
 
+    /// Every change of the ritual counter has a reason.
+    fn assert_notes_match_counter(p: &Progress) {
+        let sum: i32 = p.ritual_notes.iter().map(|note| note.change).sum();
+        assert_eq!(sum, p.ritual_counter);
+    }
+
     /// Plays the script like a player would.
     struct Sim {
         p: Progress,
@@ -1169,6 +1192,8 @@ mod tests {
         sim.do_ritual();
         assert_eq!(sim.p.ritual_counter, 1);
         assert_eq!(sim.ending, Some(Ending::RichHarvest));
+        assert_eq!(sim.p.ritual_stars(), Some(4));
+        assert_notes_match_counter(&sim.p);
         assert!(sim.meta.achievements.contains(&Achievement::RichHarvest));
 
         // A second run with the knowledge of the first one.
@@ -1181,6 +1206,11 @@ mod tests {
         sim.do_ritual();
         assert_eq!(sim.p.ritual_counter, -1);
         assert_eq!(sim.ending, Some(Ending::MeowthyCultist));
+        assert_eq!(sim.p.ritual_stars(), Some(5));
+        assert_notes_match_counter(&sim.p);
+        let notes = sim.p.ritual_assessment();
+        assert!(notes.iter().any(|note| note.change < 0));
+        assert!(notes.iter().any(|note| note.text.contains("flawless")));
         for achievement in [
             Achievement::MeowthyCultist,
             Achievement::WhosTheRealMaster,
@@ -1230,6 +1260,9 @@ mod tests {
         sim.enter(Node::Ritual).choose("I am ready to summon Ulu");
         assert_eq!(sim.p.ritual_counter, 4);
         assert_eq!(sim.ending, Some(Ending::CatGrass));
+        assert_eq!(sim.p.ritual_stars(), Some(1));
+        assert_notes_match_counter(&sim.p);
+        assert_eq!(sim.p.ritual_notes.len(), 4);
     }
 
     #[test]
@@ -1239,6 +1272,7 @@ mod tests {
         assert!(!sim.p.got_candle());
         sim.enter(Node::Bed).choose("Sleep");
         assert_eq!(sim.ending, Some(Ending::Sleep));
+        assert_eq!(sim.p.ritual_stars(), None);
         assert!(sim.meta.confirmed_meta_knowledge);
 
         let mut sim = Sim::new(sim.meta);
@@ -1282,6 +1316,7 @@ mod tests {
         assert_eq!(sim.p.carpet, Carpet::Bloody);
         sim.enter(Node::Trip);
         assert_eq!(sim.ending, Some(Ending::Unworthy));
+        assert_eq!(sim.p.ritual_stars(), None);
     }
 
     #[test]

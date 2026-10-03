@@ -198,12 +198,24 @@ impl Achievement {
     }
 }
 
+/// A reason why Ulu likes the ritual more or less.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RitualNote {
+    /// Change of the ritual counter. Negative is better, 0 is just praise.
+    pub change: i32,
+    pub text: &'static str,
+}
+
 /// State of the current run. Reset whenever a new game is started.
 #[derive(Resource, Debug)]
 pub struct Progress {
     pub inventory: Vec<Item>,
     /// The lower, the better Ulu likes the ritual.
     pub ritual_counter: i32,
+    /// Why the ritual counter changed.
+    pub ritual_notes: Vec<RitualNote>,
+    /// Ulu was summoned.
+    pub ritual_performed: bool,
     /// How often the player tripped in the dark ritual room.
     pub trip_count: u32,
 
@@ -233,6 +245,8 @@ pub struct Progress {
     pub circle_feather: Option<Item>,
     pub circle_candle: bool,
     pub circle_incense: Option<Item>,
+    /// What the invocation circle was drawn with.
+    pub circle_blood: Option<Item>,
 
     /// Achievements unlocked for the first time during this run.
     pub new_achievements: Vec<Achievement>,
@@ -244,6 +258,8 @@ impl Default for Progress {
         Self {
             inventory: Vec::new(),
             ritual_counter: 0,
+            ritual_notes: Vec::new(),
+            ritual_performed: false,
             trip_count: 0,
             knows_candle: false,
             knows_magister: false,
@@ -266,6 +282,7 @@ impl Default for Progress {
             circle_feather: None,
             circle_candle: false,
             circle_incense: None,
+            circle_blood: None,
             new_achievements: Vec::new(),
             ending: None,
         }
@@ -296,6 +313,42 @@ impl Progress {
             Some(slot) => *slot = new,
             None => self.give(new),
         }
+    }
+
+    /// How well the ritual was prepared, from 1 to 5 stars. `None` if Ulu was
+    /// never summoned. Matches the thresholds of the summoning endings.
+    pub fn ritual_stars(&self) -> Option<u8> {
+        let stars = match self.ritual_counter {
+            ..=0 => 5,
+            1 => 4,
+            2 => 3,
+            3 => 2,
+            _ => 1,
+        };
+        self.ritual_performed.then_some(stars)
+    }
+
+    /// The reasons for the rating of the ritual: everything which changed the
+    /// ritual counter plus praise for what was done well.
+    pub fn ritual_assessment(&self) -> Vec<RitualNote> {
+        let praise = |text| RitualNote { change: 0, text };
+        let mut notes = Vec::new();
+        if self.circle_candle {
+            notes.push(praise("The candle burned brightly in the circle."));
+        }
+        if self.circle_feather == Some(Item::PerfectRavenFeather) {
+            notes.push(praise("The raven feather was flawless."));
+        }
+        if self.circle_incense == Some(Item::StinkyCheese) {
+            notes.push(praise("The incense was ripe and wonderfully pungent."));
+        }
+        if self.circle_blood == Some(Item::RedHerring) {
+            notes.push(praise(
+                "The pentagram was drawn in fish blood. Ulu didn't mind.",
+            ));
+        }
+        notes.extend(self.ritual_notes.iter().copied());
+        notes
     }
 
     /// Whether there is light in the dark ritual room: The player carries the
