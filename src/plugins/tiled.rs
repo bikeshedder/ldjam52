@@ -71,6 +71,12 @@ pub fn is_flat_image(image: &str) -> bool {
     image.contains("Glow_Floor")
 }
 
+/// Whether tiles with this image are small items lying on a table or shelf
+/// (e.g. mugs). They don't block movement, the furniture below them does.
+pub fn is_tabletop_image(image: &str) -> bool {
+    image.contains("Dishes") || image.contains("BookPile")
+}
+
 /// Whether tiles with this image hang on the wall behind their cell (e.g.
 /// paintings). They are drawn with the wall, so nothing can walk behind them.
 pub fn is_wall_hanging_image(image: &str) -> bool {

@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 
-use crate::plugins::tiled::{TiledMap, is_flat_image};
+use crate::plugins::tiled::{TiledMap, is_flat_image, is_tabletop_image};
 
 /// Offset from a character sprite's center to its feet.
 pub const FEET_OFFSET: Vec2 = Vec2::new(0.0, -56.0);
@@ -74,7 +74,8 @@ impl Walkable {
                     let image = image.to_string_lossy();
                     if !(is_flat_image(&image)
                         || image.contains("Painting")
-                        || image.contains("Door"))
+                        || image.contains("Door")
+                        || is_tabletop_image(&image))
                     {
                         blocked[index] = true;
                     }
