@@ -17,6 +17,16 @@ pub const LIBRARIAN: &str = "Edam";
 /// Name of the magister ("NPC M" in the concept).
 pub const MAGISTER: &str = "Roquefort";
 
+/// Messages shown when trying to open the locked doors of the other servants of Ulu.
+const LOCKED_DOOR: [&str; 6] = [
+    "The door is locked. Another servant of Ulu lives here, probably preparing for the Great Harvest as well.",
+    "Locked. You can hear muffled chanting from the other side.",
+    "The door doesn't move. Somebody behind it is snoring loudly.",
+    "Locked. A faint smell of old cheese seeps through the keyhole.",
+    "The handle doesn't budge. Somewhere behind the door, a quill is scratching over parchment.",
+    "Locked. A small sign on the door reads: \"Do not disturb - meditating\".",
+];
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Speaker {
     Narrator,
@@ -293,9 +303,12 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 .n("You wake up with a start. Two glowing eyes are still burning in your mind.")
         }
 
-        Node::LockedDoor => s
-            .n("The door is locked. Another servant of Ulu lives here, probably preparing for the Great Harvest as well.")
-            .c("This is not my room."),
+        Node::LockedDoor => {
+            // A different message every time.
+            let message = LOCKED_DOOR[cx.p.locked_door_attempts % LOCKED_DOOR.len()];
+            cx.p.locked_door_attempts += 1;
+            s.n(message)
+        }
 
         Node::Diary => s
             .n("Your diary lies open on the crate next to your bed. The last entry is written in a hasty, shaky handwriting:")
@@ -1193,6 +1206,20 @@ mod tests {
         sim.enter(Node::Librarian).choose("That was a trap!");
         assert!(sim.p.has(Item::Candle));
         assert!(sim.p.new_achievements.contains(&Achievement::YouDontFoolMe));
+    }
+
+    #[test]
+    fn locked_doors_show_varying_messages() {
+        let mut sim = Sim::new(Meta::default());
+        let mut messages = Vec::new();
+        for _ in 0..LOCKED_DOOR.len() + 1 {
+            let mut cx = Ctx::new(&mut sim.p, &mut sim.meta);
+            let scene = run(Node::LockedDoor, &mut cx);
+            assert_eq!(scene.lines.len(), 1);
+            messages.push(scene.lines[0].text.clone());
+        }
+        assert!(messages.windows(2).all(|pair| pair[0] != pair[1]));
+        assert_eq!(messages[0], messages[LOCKED_DOOR.len()]);
     }
 
     #[test]
