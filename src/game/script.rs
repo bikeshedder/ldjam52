@@ -98,6 +98,8 @@ pub struct Line {
 pub struct Choice {
     pub text: String,
     pub node: Node,
+    /// Leaves without doing anything, e.g. ends the dialogue or says goodbye.
+    pub cancel: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -141,16 +143,29 @@ impl Scene {
     fn choice(self, text: impl Into<String>, node: Node) -> Self {
         self.choice_if(true, text, node)
     }
-    fn choice_if(mut self, condition: bool, text: impl Into<String>, node: Node) -> Self {
-        if condition {
-            let choice = Choice {
-                text: text.into(),
-                node,
-            };
-            match &mut self.next {
-                Next::Choices(choices) => choices.push(choice),
-                _ => self.next = Next::Choices(vec![choice]),
-            }
+    fn choice_if(self, condition: bool, text: impl Into<String>, node: Node) -> Self {
+        if !condition {
+            return self;
+        }
+        self.push_choice(Choice {
+            text: text.into(),
+            node,
+            cancel: node == Node::Exit,
+        })
+    }
+    /// A choice which leaves without doing anything, even though it doesn't end
+    /// the dialogue right away, e.g. saying goodbye.
+    fn cancel(self, text: impl Into<String>, node: Node) -> Self {
+        self.push_choice(Choice {
+            text: text.into(),
+            node,
+            cancel: true,
+        })
+    }
+    fn push_choice(mut self, choice: Choice) -> Self {
+        match &mut self.next {
+            Next::Choices(choices) => choices.push(choice),
+            _ => self.next = Next::Choices(vec![choice]),
         }
         self
     }
@@ -671,7 +686,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
                 .choice_if(met && knows, format!("I just talked to {LIBRARIAN}. He says you can explain everything to me."), Node::MagFromLibrarianB)
                 .choice_if(met && !knows, format!("I just talked to {LIBRARIAN} but he could not help me. Can you help me to understand what I need to do now?"), Node::MagFromLibrarianC)
                 .choice("I require your help to gather a specific ingredient that I need for the Great Harvest.", Node::MagIngredient)
-                .choice("Sorry for disturbing you. May the Great Ulu be with you.", Node::MagBye)
+                .cancel("Sorry for disturbing you. May the Great Ulu be with you.", Node::MagBye)
         }
         Node::MagHelp => {
             cx.p.knows_candle = true;
@@ -704,7 +719,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
         Node::MagAgain => s
             .m("Aaah. Food of Ulu. How can I help you?")
             .choice("I require your help to gather a specific ingredient that I need for the Great Harvest.", Node::MagTopics)
-            .choice("Sorry for disturbing you. May the Great Ulu be with you.", Node::MagBye),
+            .cancel("Sorry for disturbing you. May the Great Ulu be with you.", Node::MagBye),
         Node::MagTopics => topics(s.m("What exactly are you struggling with?")),
         Node::MagMore => topics(s.m("I am glad that I could help you. Is there any other part of the ritual you need support with?")),
         Node::MagBye => s.m("Make haste, child. The Great Harvest starts soon. May Ulu be with you, food of Ulu."),
@@ -1296,6 +1311,29 @@ mod tests {
         sim.enter(Node::Ritual).choose("I will roll it in");
         sim.enter(Node::Ritual);
         assert!(!sim.has_choice("Let's draw the invocation circle"));
+    }
+
+    #[test]
+    fn leaving_answers_are_marked_as_cancel() {
+        let mut sim = Sim::new(Meta::default());
+        sim.enter(Node::MagGreet);
+        let cancel = |prefix: &str| {
+            sim.choices
+                .iter()
+                .find(|c| c.text.starts_with(prefix))
+                .unwrap()
+                .cancel
+        };
+        assert!(cancel("Sorry for disturbing you"));
+        assert!(!cancel("I don't know. I just woke up"));
+        sim.enter(Node::Ritual);
+        assert!(
+            sim.choices
+                .iter()
+                .find(|c| c.node == Node::Exit)
+                .unwrap()
+                .cancel
+        );
     }
 
     #[test]

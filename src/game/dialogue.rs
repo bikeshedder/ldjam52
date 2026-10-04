@@ -527,7 +527,7 @@ fn update_choices(
             },
             ChildOf(button),
         ));
-        if choice.node == script::Node::Exit {
+        if choice.cancel {
             icon.insert(ImageNode::new(asset_server.load("icons/back.png")));
         }
         commands.spawn((
