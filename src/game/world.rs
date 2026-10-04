@@ -29,6 +29,10 @@ use crate::{
     systems::animation::AnimationTimer,
 };
 
+const FIREPLACE: &str = "tilesets/village_interiors/Iso_Deco_Fireplace_01.png";
+const FIREPLACE_BURNING: &str = "tilesets/macgreg/Iso_Deco_Fireplace_01_burning.png";
+const PENTAGRAM: &str = "tilesets/macgreg/Pentagram.png";
+
 const LIBRARIAN_SPEED: f32 = 70.0;
 const LIBRARIAN_SCALE: f32 = 0.95;
 const LIBRARY: &str = "library";
@@ -888,42 +892,16 @@ fn spawn_markers(
         ),
     );
 
-    // The pentagram is drawn in a flat plane which is squashed to match the
-    // isometric perspective.
-    let blood = materials.add(Color::srgba(0.6, 0.0, 0.02, 0.9));
-    let pentagram = commands
-        .spawn((
-            Transform::from_translation(center.extend(flat + 0.1))
-                .with_scale(Vec3::new(1.0, 0.5, 1.0)),
-            Visibility::Hidden,
-            Marker::Pentagram,
-            RoomEntity,
-            DespawnOnExit(AppState::Game),
-        ))
-        .id();
-    let radius = 110.0;
+    // The center of the circle is near the bottom of the image.
+    let pentagram_pos = center + Vec2::new(1.0, 98.0);
     commands.spawn((
-        Mesh2d(meshes.add(Annulus::new(radius - 4.0, radius))),
-        MeshMaterial2d(blood.clone()),
-        ChildOf(pentagram),
+        Sprite::from_image(asset_server.load(PENTAGRAM)),
+        Transform::from_translation(pentagram_pos.extend(flat + 0.1)),
+        Visibility::Hidden,
+        Marker::Pentagram,
+        RoomEntity,
+        DespawnOnExit(AppState::Game),
     ));
-    let points: Vec<Vec2> = (0..5)
-        .map(|i| {
-            let angle = std::f32::consts::FRAC_PI_2 + i as f32 * std::f32::consts::TAU / 5.0;
-            Vec2::from_angle(angle) * (radius - 4.0)
-        })
-        .collect();
-    for i in 0..5 {
-        let (a, b) = (points[i], points[(i + 2) % 5]);
-        let mid = (a + b) / 2.0;
-        commands.spawn((
-            Mesh2d(meshes.add(Rectangle::new(a.distance(b), 4.0))),
-            MeshMaterial2d(blood.clone()),
-            Transform::from_translation(mid.extend(0.0))
-                .with_rotation(Quat::from_rotation_z((b - a).to_angle())),
-            ChildOf(pentagram),
-        ));
-    }
 
     let candle_pos = center + Vec2::new(0.0, 30.0);
     commands.spawn((
@@ -942,6 +920,7 @@ fn spawn_markers(
 fn update_world_visuals(
     room: Res<Room>,
     progress: Res<Progress>,
+    asset_server: Res<AssetServer>,
     new_tiles: Query<(), Added<MapTile>>,
     mut tiles: Query<(&MapTile, &mut Sprite, &mut Visibility), Without<Marker>>,
     mut markers: Query<(&Marker, &mut Visibility)>,
@@ -951,11 +930,11 @@ fn update_world_visuals(
     }
     for (tile, mut sprite, mut visibility) in &mut tiles {
         if tile.image.contains("Fireplace") {
-            sprite.color = if progress.fire_lit {
-                Color::WHITE
+            sprite.image = asset_server.load(if progress.fire_lit {
+                FIREPLACE_BURNING
             } else {
-                Color::srgb(0.45, 0.45, 0.5)
-            };
+                FIREPLACE
+            });
         }
         // The carpet in the ritual room can be rolled in.
         if tile.layer == "Carpet" && room.interactable("ritual").is_some() {
