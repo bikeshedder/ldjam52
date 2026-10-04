@@ -564,7 +564,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
         // Librarian
         Node::Librarian => librarian(cx, s),
         Node::LibrarianBack => {
-            if !cx.p.librarian_met && cx.has(Item::Knife) {
+            if cx.p.can_stab_librarian() {
                 s.n("He didn't notice you, yet.")
                     .choice("[Use the knife]", Node::LibMurder)
                     .choice("Leave", Node::Exit)
@@ -991,6 +991,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
 }
 
 fn librarian(cx: &mut Ctx, s: Scene) -> Scene {
+    cx.p.librarian_noticed = true;
     let p = &cx.p;
     if !p.librarian_met {
         let s = s.l("Hey! Running is forbidden in the library!");
@@ -1311,6 +1312,18 @@ mod tests {
         sim.enter(Node::Ritual).choose("I will roll it in");
         sim.enter(Node::Ritual);
         assert!(!sim.has_choice("Let's draw the invocation circle"));
+    }
+
+    #[test]
+    fn the_librarian_cannot_be_stabbed_after_noticing_the_player() {
+        let mut sim = Sim::new(Meta::default());
+        sim.p.give(Item::Knife);
+        assert!(sim.p.can_stab_librarian());
+        sim.enter(Node::Librarian).choose("Sorry!");
+        assert!(!sim.p.librarian_met);
+        assert!(!sim.p.can_stab_librarian());
+        sim.enter(Node::LibrarianBack);
+        assert!(!sim.has_choice("[Use the knife]"));
     }
 
     #[test]

@@ -584,7 +584,7 @@ fn interact(
             librarian.addressed = true;
             // He only stays unaware while the player can still stab him in the
             // back. Otherwise he notices the player and turns around.
-            librarian.unaware = behind && !progress.librarian_met && progress.has(Item::Knife);
+            librarian.unaware = behind && progress.can_stab_librarian();
         }
         dialogue.write(StartDialogue(node));
     }
@@ -630,7 +630,7 @@ fn librarian_patrol(
             dialogue.write(StartDialogue(Node::Librarian));
             return;
         }
-        if distance < 80.0 && !progress.librarian_met && progress.has(Item::Knife) {
+        if distance < 80.0 && progress.can_stab_librarian() {
             // The player ran into the librarian from behind with a knife in hand.
             librarian.cooldown = true;
             librarian.unaware = true;

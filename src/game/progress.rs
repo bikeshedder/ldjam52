@@ -232,6 +232,9 @@ pub struct Progress {
     pub magister_topics: BTreeSet<Topic>,
 
     pub librarian_met: bool,
+    /// The librarian noticed the player, so he can't be surprised from behind
+    /// anymore, even if the player didn't talk to him.
+    pub librarian_noticed: bool,
     pub librarian_gave_candle: bool,
     pub librarian_gone: bool,
     /// The librarian is gone because the player killed him.
@@ -271,6 +274,7 @@ impl Default for Progress {
             mirror_done: false,
             magister_topics: BTreeSet::new(),
             librarian_met: false,
+            librarian_noticed: false,
             librarian_gave_candle: false,
             librarian_gone: false,
             librarian_killed: false,
@@ -355,6 +359,11 @@ impl Progress {
     /// burning candle or placed it on the invocation circle.
     pub fn has_light(&self) -> bool {
         self.has(Item::BurningCandle) || self.circle_candle
+    }
+
+    /// The player can sneak up on the librarian and stab him from behind.
+    pub fn can_stab_librarian(&self) -> bool {
+        !self.librarian_met && !self.librarian_noticed && self.has(Item::Knife)
     }
 
     /// Whether the player ever had (or still has) a candle.
