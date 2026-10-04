@@ -25,6 +25,7 @@ mod dev;
 mod game;
 mod plugins;
 mod systems;
+mod version;
 
 #[derive(States, Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum AppState {
@@ -48,6 +49,10 @@ fn setup(mut commands: Commands) {
 }
 
 fn main() -> anyhow::Result<()> {
+    if std::env::args().any(|arg| arg == "--version") {
+        println!("ULU - The Harvest {}", version::long());
+        return Ok(());
+    }
     let entity_types = load_entity_types()?;
 
     let mut app = App::new();
@@ -88,6 +93,7 @@ fn main() -> anyhow::Result<()> {
     );
     #[cfg(feature = "dev")]
     app.add_plugins(dev::scenario::ScenarioPlugin);
+    info!("ULU - The Harvest {}", version::long());
     if app.run().is_error() {
         std::process::exit(1);
     }

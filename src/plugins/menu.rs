@@ -217,6 +217,23 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
             ],
         )],
     ));
+    // The version of the build, small in the bottom right corner
+    commands.spawn((
+        Text::new(crate::version::long()),
+        TextFont {
+            font: font.clone().into(),
+            font_size: 14.0.into(),
+            ..default()
+        },
+        TextColor(Color::srgb(0.4, 0.4, 0.4)),
+        Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(12.0),
+            bottom: Val::Px(8.0),
+            ..default()
+        },
+        DespawnOnExit(MenuState::Main),
+    ));
 }
 
 // State used for the current menu screen
