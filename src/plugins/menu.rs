@@ -397,30 +397,66 @@ fn achievements_setup(mut commands: Commands, asset_server: Res<AssetServer>, me
     ));
 }
 
-/// The people who made the game and what they did. They are listed in a random
-/// order every time the credits are shown.
-const CREDITS: [(&str, &str); 4] = [
-    ("Michael P. Jung", "Story & Software Engineer"),
-    ("Tim Markmann", "Story & Level Design"),
-    ("Tom Haase", "Music & Sounds"),
-    ("Manuel Terranova", "Story & Dialogs"),
+/// Somebody who is credited, with their handle and what they did.
+#[derive(Clone, Copy, Debug)]
+struct Credit {
+    name: &'static str,
+    handle: Option<&'static str>,
+    role: &'static str,
+}
+
+const fn credit(name: &'static str, handle: Option<&'static str>, role: &'static str) -> Credit {
+    Credit { name, handle, role }
+}
+
+const PERSON_ICON: &str = "icons/credits/person.png";
+
+/// The people who made the game, in the order of how much they contributed.
+const TEAM: [Credit; 5] = [
+    credit(
+        "Michael P. Jung",
+        Some("bikeshedder"),
+        "Team Lead, Software Engineer",
+    ),
+    credit("Manuel Terranova", Some("Terra_Magus"), "Dialog, Story"),
+    credit("Tim Markmann", Some("Ty"), "Map, Game Design"),
+    credit("Tom Haase", Some("Rockroot"), "Music, Sounds"),
+    credit(
+        "Gregor Huth",
+        Some("MacGreg"),
+        "Character Design, Additional Art",
+    ),
 ];
 
-/// Always listed after the team.
-const JUNIOR_DEVELOPER: (&str, &str) = ("Claude AI", "Junior Developer");
+/// People whose work is used in the game, with the path of their logo.
+const THANKS: [(&str, Credit); 1] = [(
+    "icons/credits/golden_skull_art.png",
+    credit(
+        "Max Heyder",
+        Some("Golden Skull Art"),
+        "Village Interior Tileset",
+    ),
+)];
 
-/// The credits in a random order, followed by the junior developer.
-fn shuffled_credits() -> Vec<(&'static str, &'static str)> {
-    use std::hash::{BuildHasher, RandomState};
-    let mut credits = CREDITS.to_vec();
-    // Fisher-Yates shuffle. Every `RandomState` is randomly seeded.
-    for i in (1..credits.len()).rev() {
-        let j = (RandomState::new().hash_one(i) % (i as u64 + 1)) as usize;
-        credits.swap(i, j);
-    }
-    credits.push(JUNIOR_DEVELOPER);
-    credits
-}
+/// Tools the game is built with, with the path of their logo.
+const MADE_WITH: [(&str, Credit); 2] = [
+    (
+        "icons/credits/rust.png",
+        credit("Rust", None, "Programming Language"),
+    ),
+    (
+        "icons/credits/bevy.png",
+        credit("Bevy", None, "Game Engine"),
+    ),
+];
+
+const ASSISTED_BY: [(&str, Credit); 1] = [(
+    "icons/credits/claude.png",
+    credit("Claude AI", None, "Junior Developer"),
+)];
+
+const ROLE_COLOR: Color = Color::srgb(0.75, 0.55, 0.2);
+const HANDLE_COLOR: Color = Color::srgb(0.6, 0.6, 0.65);
 
 fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(MenuSelection::default());
@@ -435,6 +471,53 @@ fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             TextColor(color),
         )
+    };
+    // An icon next to name, handle and role. `scale` makes it smaller.
+    // Returns the row, so it can be styled further.
+    let spawn_credit = |commands: &mut Commands,
+                        parent: Entity,
+                        icon: &'static str,
+                        credit: Credit,
+                        scale: f32| {
+        let row = commands
+            .spawn((
+                Node {
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(12.0 * scale),
+                    ..default()
+                },
+                ChildOf(parent),
+            ))
+            .id();
+        commands.spawn((
+            ImageNode::new(asset_server.load(icon)),
+            Node {
+                width: Val::Px(44.0 * scale),
+                height: Val::Px(44.0 * scale),
+                ..default()
+            },
+            ChildOf(row),
+        ));
+        let entry = commands
+            .spawn((
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                ChildOf(row),
+            ))
+            .id();
+        let name_color = if scale < 1.0 {
+            TEXT_COLOR
+        } else {
+            Color::WHITE
+        };
+        commands.spawn((text(credit.name, 24.0 * scale, name_color), ChildOf(entry)));
+        if let Some(handle) = credit.handle {
+            commands.spawn((text(handle, 15.0 * scale, HANDLE_COLOR), ChildOf(entry)));
+        }
+        commands.spawn((text(credit.role, 16.0 * scale, ROLE_COLOR), ChildOf(entry)));
+        row
     };
     let root = commands
         .spawn((
@@ -453,40 +536,99 @@ fn credits_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Node {
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
-                row_gap: Val::Px(6.0),
-                padding: UiRect::axes(Val::Px(60.0), Val::Px(24.0)),
+                padding: UiRect::axes(Val::Px(50.0), Val::Px(20.0)),
                 ..default()
             },
             BackgroundColor(MENU_BG),
             ChildOf(root),
         ))
         .id();
-    commands.spawn((text("Credits", 36.0, TEXT_COLOR), ChildOf(panel)));
+    commands.spawn((text("Credits", 34.0, TEXT_COLOR), ChildOf(panel)));
     commands.spawn((
         text("ULU - The Harvest", 20.0, Color::srgb(0.85, 0.2, 0.15)),
         Node {
-            margin: UiRect::bottom(Val::Px(14.0)),
+            margin: UiRect::bottom(Val::Px(12.0)),
             ..default()
         },
         ChildOf(panel),
     ));
-    for (name, role) in shuffled_credits() {
-        commands.spawn((text(name, 26.0, Color::WHITE), ChildOf(panel)));
-        commands.spawn((
-            text(role, 17.0, Color::srgb(0.75, 0.55, 0.2)),
+    let columns = commands
+        .spawn((
             Node {
-                margin: UiRect::bottom(Val::Px(10.0)),
+                column_gap: Val::Px(50.0),
+                align_items: AlignItems::Stretch,
                 ..default()
             },
             ChildOf(panel),
+        ))
+        .id();
+
+    // The team, every member on a card like the achievements
+    let team = commands
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(8.0),
+                ..default()
+            },
+            ChildOf(columns),
+        ))
+        .id();
+    for credit in TEAM {
+        let card = spawn_credit(&mut commands, team, PERSON_ICON, credit, 1.0);
+        commands.entity(card).insert((
+            Node {
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(12.0),
+                padding: UiRect::axes(Val::Px(10.0), Val::Px(6.0)),
+                border_radius: BorderRadius::all(Val::Px(8.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.13, 0.12, 0.13)),
         ));
     }
+
+    // Everybody else, less prominent than the team
+    let others = commands
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(10.0),
+                padding: UiRect::left(Val::Px(30.0)),
+                border: UiRect::left(Val::Px(1.0)),
+                ..default()
+            },
+            BorderColor::all(Color::srgb(0.25, 0.25, 0.25)),
+            ChildOf(columns),
+        ))
+        .id();
+    for (index, (heading, credits)) in [
+        ("Thanks to", &THANKS[..]),
+        ("Made with", &MADE_WITH[..]),
+        ("Assisted by", &ASSISTED_BY[..]),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        commands.spawn((
+            text(heading, 15.0, HANDLE_COLOR),
+            Node {
+                margin: UiRect::top(Val::Px(if index == 0 { 0.0 } else { 12.0 })),
+                ..default()
+            },
+            ChildOf(others),
+        ));
+        for &(logo, credit) in credits {
+            spawn_credit(&mut commands, others, logo, credit, 0.75);
+        }
+    }
+
     commands.spawn((
         Button,
         Node {
             width: Val::Px(200.0),
             height: Val::Px(50.0),
-            margin: UiRect::top(Val::Px(14.0)),
+            margin: UiRect::top(Val::Px(16.0)),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             ..default()
@@ -554,22 +696,5 @@ fn menu_navigation(
         MenuButtonAction::Achievements => menu_state.set(MenuState::Achievements),
         MenuButtonAction::Credits => menu_state.set(MenuState::Credits),
         MenuButtonAction::BackToMainMenu => menu_state.set(MenuState::Main),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn credits_are_shuffled_with_the_junior_developer_last() {
-        let orders: std::collections::HashSet<_> = (0..200).map(|_| shuffled_credits()).collect();
-        for credits in &orders {
-            assert_eq!(credits.len(), CREDITS.len() + 1);
-            assert_eq!(credits.last(), Some(&JUNIOR_DEVELOPER));
-            assert!(CREDITS.iter().all(|entry| credits.contains(entry)));
-        }
-        // 24 possible orders, 200 tries should find most of them.
-        assert!(orders.len() > 10, "only {} different orders", orders.len());
     }
 }

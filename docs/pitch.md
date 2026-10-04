@@ -54,12 +54,15 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 
 | Name | Role |
 | :--- | :--- |
-| Michael P. Jung | Story & Software Engineering |
-| Tim Markmann | Story & Level Design |
-| Manuel Terranova | Story & Dialogue |
-| Tom Haase | Music & Sound |
+| Michael P. Jung | Team Lead, Software Engineer |
+| Manuel Terranova | Dialog, Story (all in-game text) |
+| Tim Markmann | Map, Game Design |
+| Tom Haase | Music, Sounds |
+| Gregor Huth | Character Design, Additional Art |
 
 AI-assisted development (Claude, credited in-game as "Junior Developer").
+
+The village interior tileset is by Max "Golden Skull Art" Heyder ([2D Isometric Tileset – Village Interior](https://goldenskullart-store.itch.io/2d-isometric-tileset-village-interior)).
 
 ## Contact
 
