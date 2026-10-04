@@ -33,6 +33,13 @@ const FIREPLACE: &str = "tilesets/village_interiors/Iso_Deco_Fireplace_01.png";
 const FIREPLACE_BURNING: &str = "tilesets/macgreg/Iso_Deco_Fireplace_01_burning.png";
 const PENTAGRAM: &str = "tilesets/macgreg/Pentagram.png";
 
+/// Center of the fire in the fireplace image, measured from its bottom-left corner.
+const FIRE_OFFSET: Vec2 = Vec2::new(110.0, 95.0);
+const FIRE_GLOW_SIZE: Vec2 = Vec2::new(360.0, 300.0);
+const FIRE_GLOW_COLOR: Vec3 = Vec3::new(1.0, 0.6, 0.15);
+/// Seconds per pulse of the fire glow.
+const FIRE_GLOW_PERIOD: f32 = 2.4;
+
 const LIBRARIAN_SPEED: f32 = 70.0;
 const LIBRARIAN_SCALE: f32 = 0.95;
 const LIBRARY: &str = "library";
@@ -176,6 +183,10 @@ enum Marker {
     BedFeathers,
 }
 
+/// Warm light pulsing from the fireplace while the fire is burning.
+#[derive(Component)]
+struct FireGlow;
+
 /// Where the player was during the last frame.
 #[derive(Resource, Default)]
 struct RoomTracker {
@@ -209,6 +220,7 @@ impl Plugin for WorldPlugin {
                         update_depth,
                         update_light,
                         update_world_visuals,
+                        (spawn_fire_glow, update_fire_glow).chain(),
                         face_player,
                         update_highlight,
                     )
@@ -959,6 +971,77 @@ fn update_world_visuals(
         } else {
             Visibility::Hidden
         });
+    }
+}
+
+/// A soft round glow, fully opaque in the center and transparent at the edge.
+fn glow_image() -> Image {
+    const SIZE: u32 = 64;
+    let data = (0..SIZE * SIZE)
+        .flat_map(|i| {
+            let p = Vec2::new((i % SIZE) as f32, (i / SIZE) as f32) + 0.5;
+            let d = (p / SIZE as f32 * 2.0 - 1.0).length().min(1.0);
+            let alpha = (1.0 - d * d).powi(2);
+            [255, 255, 255, (alpha * 255.0) as u8]
+        })
+        .collect();
+    Image::new(
+        bevy::render::render_resource::Extent3d {
+            width: SIZE,
+            height: SIZE,
+            depth_or_array_layers: 1,
+        },
+        bevy::render::render_resource::TextureDimension::D2,
+        data,
+        bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
+        default(),
+    )
+}
+
+/// Puts a glow behind every fireplace, so it lights up the wall and floor around it.
+fn spawn_fire_glow(
+    mut commands: Commands,
+    tiles: Query<(Entity, &MapTile), Added<MapTile>>,
+    mut images: ResMut<Assets<Image>>,
+    mut glow: Local<Option<Handle<Image>>>,
+) {
+    for (entity, tile) in &tiles {
+        if !tile.image.contains("Fireplace") {
+            continue;
+        }
+        let image = glow.get_or_insert_with(|| images.add(glow_image())).clone();
+        commands.spawn((
+            Sprite {
+                image,
+                custom_size: Some(FIRE_GLOW_SIZE),
+                color: Color::NONE,
+                ..default()
+            },
+            Transform::from_translation(FIRE_OFFSET.extend(-0.05)),
+            Visibility::Hidden,
+            FireGlow,
+            ChildOf(entity),
+        ));
+    }
+}
+
+fn update_fire_glow(
+    time: Res<Time>,
+    progress: Res<Progress>,
+    mut glows: Query<(&mut Sprite, &mut Visibility), With<FireGlow>>,
+) {
+    let phase = time.elapsed_secs() / FIRE_GLOW_PERIOD * std::f32::consts::TAU;
+    // A slow pulse with a slight flicker on top.
+    let pulse = 0.5 + 0.4 * phase.sin() + 0.1 * (phase * 3.7).sin();
+    let alpha = 0.18 + 0.12 * pulse;
+    for (mut sprite, mut visibility) in &mut glows {
+        visibility.set_if_neq(if progress.fire_lit {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        });
+        let [r, g, b] = FIRE_GLOW_COLOR.to_array();
+        sprite.color = Color::srgba(r, g, b, alpha);
     }
 }
 
