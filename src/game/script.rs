@@ -162,6 +162,15 @@ impl Scene {
             cancel: true,
         })
     }
+    /// A choice which carries on, even though it ends the dialogue, e.g.
+    /// staying in a room.
+    fn proceed(self, text: impl Into<String>, node: Node) -> Self {
+        self.push_choice(Choice {
+            text: text.into(),
+            node,
+            cancel: false,
+        })
+    }
     fn push_choice(mut self, choice: Choice) -> Self {
         match &mut self.next {
             Next::Choices(choices) => choices.push(choice),
@@ -819,8 +828,8 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
         Node::DarkRoom => {
             cx.sfx(Sfx::EnterDarkRoom);
             s.c("It's very dark here. I should be careful.")
-                .choice("I am not afraid of the dark. Ulu will guide me.", Node::Exit)
-                .choice("I'd better leave this room.", Node::DarkRoomLeave)
+                .proceed("I am not afraid of the dark. Ulu will guide me.", Node::Exit)
+                .cancel("I'd better leave this room.", Node::DarkRoomLeave)
         }
         Node::DarkRoomLeave => {
             cx.effects.push(Effect::LeaveRoom);
@@ -1324,6 +1333,15 @@ mod tests {
         assert!(!sim.p.can_stab_librarian());
         sim.enter(Node::LibrarianBack);
         assert!(!sim.has_choice("[Use the knife]"));
+    }
+
+    #[test]
+    fn leaving_the_dark_room_is_the_cancel_answer() {
+        let mut sim = Sim::new(Meta::default());
+        sim.enter(Node::DarkRoom);
+        let cancel: Vec<_> = sim.choices.iter().filter(|c| c.cancel).collect();
+        assert_eq!(cancel.len(), 1);
+        assert_eq!(cancel[0].node, Node::DarkRoomLeave);
     }
 
     #[test]
