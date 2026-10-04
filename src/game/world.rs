@@ -132,6 +132,7 @@ pub struct LibrarianPatrol {
 
 impl LibrarianPatrol {
     /// Where somebody stands who is `distance` behind the librarian.
+    #[cfg(feature = "dev")]
     pub fn behind(&self, distance: f32) -> Vec2 {
         self.position - self.facing * distance
     }
