@@ -15,6 +15,8 @@ use crate::AppState;
 
 /// Characters revealed per second.
 const TEXT_SPEED: f32 = 90.0;
+/// Size of the icon in front of an answer.
+const CHOICE_ICON_SIZE: f32 = 18.0;
 
 /// Request to start a dialogue at the given node.
 #[derive(Message, Clone, Copy, Debug)]
@@ -499,25 +501,44 @@ fn update_choices(
     commands.entity(entity).despawn_related::<Children>();
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     for (index, choice) in dialogue.choices().iter().enumerate() {
-        commands.spawn((
-            Button,
-            Node {
-                padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
-                border_radius: BorderRadius::all(Val::Px(6.0)),
-                ..default()
-            },
-            BackgroundColor(Color::NONE),
-            ChoiceButton(index),
-            ChildOf(entity),
-            children![(
-                Text::new(&choice.text),
-                TextFont {
-                    font: font.clone().into(),
-                    font_size: 21.0.into(),
+        let button = commands
+            .spawn((
+                Button,
+                Node {
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(8.0),
+                    padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
+                    border_radius: BorderRadius::all(Val::Px(6.0)),
                     ..default()
                 },
-                TextColor(Color::srgb(0.75, 0.75, 0.75)),
-            )],
+                BackgroundColor(Color::NONE),
+                ChoiceButton(index),
+                ChildOf(entity),
+            ))
+            .id();
+        // Answers which close the dialogue without doing anything are marked
+        // with an icon. The others keep the space, so all answers line up.
+        let mut icon = commands.spawn((
+            Node {
+                width: Val::Px(CHOICE_ICON_SIZE),
+                height: Val::Px(CHOICE_ICON_SIZE),
+                flex_shrink: 0.0,
+                ..default()
+            },
+            ChildOf(button),
+        ));
+        if choice.node == script::Node::Exit {
+            icon.insert(ImageNode::new(asset_server.load("icons/back.png")));
+        }
+        commands.spawn((
+            Text::new(&choice.text),
+            TextFont {
+                font: font.clone().into(),
+                font_size: 21.0.into(),
+                ..default()
+            },
+            TextColor(Color::srgb(0.75, 0.75, 0.75)),
+            ChildOf(button),
         ));
     }
 }
@@ -526,6 +547,7 @@ fn style_choices(
     dialogue: Res<Dialogue>,
     mut buttons: Query<(&ChoiceButton, &mut BackgroundColor, &Children)>,
     mut texts: Query<&mut TextColor>,
+    mut icons: Query<&mut ImageNode>,
 ) {
     for (ChoiceButton(index), mut background, children) in &mut buttons {
         let selected = dialogue.selected == Some(*index);
@@ -534,13 +556,17 @@ fn style_choices(
         } else {
             Color::NONE
         };
+        let color = if selected {
+            Color::WHITE
+        } else {
+            Color::srgb(0.7, 0.7, 0.7)
+        };
         for child in children {
-            if let Ok(mut color) = texts.get_mut(*child) {
-                color.0 = if selected {
-                    Color::WHITE
-                } else {
-                    Color::srgb(0.7, 0.7, 0.7)
-                };
+            if let Ok(mut text) = texts.get_mut(*child) {
+                text.0 = color;
+            }
+            if let Ok(mut icon) = icons.get_mut(*child) {
+                icon.color = color;
             }
         }
     }
