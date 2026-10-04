@@ -6,7 +6,7 @@
 
 Tonight is the Great Harvest. For weeks, the cat god Ulu has whispered to you in your dreams, and now you, a devoted young cultist mouse, finally have your chance to be harvested. The trouble is that you can't quite remember how the ritual works.
 
-Explore an old cult manor in isometric view. Talk your way past a grumpy librarian, pester the magister for advice, raid the dining hall for "incense" (stinky cheese will do), and gather what you need to summon Ulu: a burning candle, a raven feather and a circle of invocation drawn in blood. How you get them is up to you. You can ask nicely, improvise with a soot-blackened pillow feather, or deal with the librarian in a much darker way.
+Explore an old cult manor in isometric view. Talk your way past a grumpy librarian, pester the magister for advice, raid the dining hall for "incense" (stinky cheese will do), and gather what you need to summon Ulu: a burning candle, a raven feather and a circle of invocation drawn in blood. How you get them is up to you. You can ask nicely, improvise with a soot-blackened pillow feather, or deal with the librarian in a much darker way. And if you can't bring yourself to draw the pentagram in your own blood, the magister's cheap wine or a suspiciously red herring might do.
 
 Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by how well you prepared it, how devout you were and how much help you needed. Six endings are possible, from a flawless "Meowthy Cultist" sacrifice to sleeping right through the Harvest. Some characters even remember what happened in earlier playthroughs.
 
@@ -14,6 +14,7 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 
 - **A cute-but-sinister tone**: Lovecraftian cult rituals with mice, cheese and a giant cat god. It's funny, a bit dark, and easy to recognise.
 - **Puzzles with more than one solution**: Every ritual ingredient can be found in several ways, and the quality of each choice changes Ulu's verdict.
+- **Atmosphere**: The ritual room is lit only by the candle you carry, and a crackling fireplace glows warmly in the dining hall.
 - **Rewards replaying**: There are 6 endings, 12 achievements (3 of them secret) and 8 hidden "Cats of Ulu" to find. Knowledge carries over between runs, and NPCs react to it.
 - **A ritual rating instead of pass/fail**: The ending screen gives the ritual a star rating and explains why Ulu was pleased or disappointed.
 - **Built for short sessions**: A single run is short, and the game is designed to be played many times.
@@ -38,6 +39,7 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 | **Perspective** | 2D isometric |
 | **Platforms** | Windows, Linux (self-contained builds available). Other platforms are possible with the engine. |
 | **Engine** | Bevy 0.19 (Rust), levels built in Tiled |
+| **Art** | Original character art, environments built from the Golden Skull Art village interior tileset |
 | **Input** | Keyboard and gamepad, with input hints that follow the device in use |
 | **Language** | English |
 | **Locations** | 6 rooms: bedroom, hall, library, study, dining hall, ritual room |
@@ -48,21 +50,24 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 | **Session length** | Short runs that encourage replaying *(exact playtime: TBD)* |
 | **Target audience** | Fans of short narrative games, dark humour and achievement hunting |
 | **Status** | Playable and feature-complete. Started as a Ludum Dare 52 game-jam entry for the theme "Harvest", then expanded. |
+| **Version** | 0.1.0.82 (every build shows its version in the main menu) |
 | **Price** | TBD |
 
 ## Team
 
-| Name | Role |
-| :--- | :--- |
-| Michael P. Jung | Team Lead, Software Engineer |
-| Manuel Terranova | Dialog, Story (all in-game text) |
-| Tim Markmann | Map, Game Design |
-| Tom Haase | Music, Sounds |
-| Gregor Huth | Character Design, Additional Art |
+| Name | Handle | Role |
+| :--- | :--- | :--- |
+| Michael P. Jung | bikeshedder | Team Lead, Software Engineer |
+| Manuel Terranova | Terra_Magus | Dialog, Story (all in-game text) |
+| Tim Markmann | Ty | Map, Game Design |
+| Tom Haase | Rockroot | Music, Sounds |
+| Gregor Huth | MacGreg | Character Design, Additional Art |
 
-AI-assisted development (Claude, credited in-game as "Junior Developer").
+**Thanks to** Max "Golden Skull Art" Heyder for the [2D Isometric Tileset – Village Interior](https://goldenskullart-store.itch.io/2d-isometric-tileset-village-interior).
 
-The village interior tileset is by Max "Golden Skull Art" Heyder ([2D Isometric Tileset – Village Interior](https://goldenskullart-store.itch.io/2d-isometric-tileset-village-interior)).
+**Made with** Rust and the Bevy game engine.
+
+**Assisted by** Claude AI, credited in-game as "Junior Developer".
 
 ## Contact
 
