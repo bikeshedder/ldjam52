@@ -327,6 +327,7 @@ pub enum Node {
     Ritual,
     CarpetRollIn,
     FloorDraw,
+    FloorWine,
     FloorCut,
     FloorCutFail,
     FloorHerring,
@@ -787,7 +788,7 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
         Node::MagGiveWine => {
             cx.p.wine_received = true;
             cx.p.give(Item::Wine);
-            s.m("Here you go, I still have a bag of cheap wine. You will need a knife to cut it open and then you are ready to draw the circle of invocation.")
+            s.m("Here you go, I still have a bag of cheap wine. Just pour it onto the floor and you are ready to draw the circle of invocation.")
                 .c("Thanks for your help, magister. I will make sure to use the wine.")
                 .goto(Node::MagMore)
         }
@@ -837,23 +838,25 @@ pub fn run(node: Node, cx: &mut Ctx) -> Scene {
             s.n("You roll in the carpet and push it into a corner.")
         }
         Node::FloorDraw => {
-            if cx.has(Item::Wine) {
-                cx.sfx(Sfx::PentagramDraw);
-                cx.p.take(Item::Wine);
-                cx.p.circle = RitualCircle::Unfinished;
-                cx.p.circle_blood = Some(Item::Wine);
-                cx.ritual(
-                    1,
-                    "The pentagram was drawn in cheap wine instead of your own blood.",
-                );
-                s.n("You take out the bag of wine the magister gave to you and cut it with the knife. Then you cautiously spill the wine on the clean floor, drawing a red circle and a star with five corners. This is a decent pentagram. Ulu will be pleased with you.")
-            } else if cx.has(Item::RedHerring) {
-                s.c("Ok, now is the time to draw the pentagram.")
-                    .choice("Cut yourself", Node::FloorCut)
-                    .choice("Use the red herring", Node::FloorHerring)
-            } else {
-                s.goto(Node::FloorCut)
-            }
+            let knife = cx.has(Item::Knife);
+            let wine = cx.has(Item::Wine);
+            let herring = cx.has(Item::RedHerring);
+            s.c("Ok, now is the time to draw the pentagram. But what should I draw it with?")
+                .choice_if(knife, "Cut yourself", Node::FloorCut)
+                .choice_if(wine, "Use the wine from the magister", Node::FloorWine)
+                .choice_if(knife && herring, "Use the red herring", Node::FloorHerring)
+                .choice("I am not ready yet.", Node::Exit)
+        }
+        Node::FloorWine => {
+            cx.sfx(Sfx::PentagramDraw);
+            cx.p.take(Item::Wine);
+            cx.p.circle = RitualCircle::Unfinished;
+            cx.p.circle_blood = Some(Item::Wine);
+            cx.ritual(
+                1,
+                "The pentagram was drawn in cheap wine instead of your own blood.",
+            );
+            s.n("You open the bag of wine the magister gave to you and cautiously spill the wine on the clean floor, drawing a red circle and a star with five corners. This is a decent pentagram. Ulu will be pleased with you.")
         }
         Node::FloorCut => s
             .c("Ok. Now is the time. I will need to cut my artery.")
@@ -1044,10 +1047,11 @@ fn ritual(cx: &mut Ctx, s: Scene) -> Scene {
             .choice("I will roll it in.", Node::CarpetRollIn)
             .choice("I will leave it as it is.", Node::Exit),
         (Carpet::RolledIn, RitualCircle::None) => {
-            let knife = p.has(Item::Knife);
+            // Wine can be poured, everything else needs to be cut.
+            let can_draw = p.has(Item::Knife) || p.has(Item::Wine);
             s.n("The floor is empty and clean.")
                 .choice("I will leave it as it is.", Node::Exit)
-                .choice_if(knife, "Let's draw the invocation circle!", Node::FloorDraw)
+                .choice_if(can_draw, "Let's draw the invocation circle!", Node::FloorDraw)
         }
         (Carpet::RolledIn, RitualCircle::Unfinished) => {
             let feather = p.circle_feather.is_none();
@@ -1167,10 +1171,8 @@ mod tests {
             assert!(self.p.has_light());
             self.enter(Node::Ritual).choose("I will roll it in");
             self.enter(Node::Ritual)
-                .choose("Let's draw the invocation circle");
-            if !self.choices.is_empty() {
-                self.choose("Use the red herring");
-            }
+                .choose("Let's draw the invocation circle")
+                .choose("Use the red herring");
             assert_eq!(self.p.circle, RitualCircle::Unfinished);
             self.enter(Node::Ritual).choose("Place the perfect feather");
             self.enter(Node::Ritual).choose("Place the burning candle");
@@ -1252,7 +1254,12 @@ mod tests {
         sim.enter(Node::Ritual).choose("I will roll it in");
         sim.enter(Node::Ritual)
             .choose("Let's draw the invocation circle");
+        // With the knife the player could also cut themselves.
+        assert!(sim.has_choice("Cut yourself"));
+        assert!(!sim.has_choice("Use the red herring"));
+        sim.choose("Use the wine");
         assert_eq!(sim.p.circle, RitualCircle::Unfinished);
+        assert_eq!(sim.p.circle_blood, Some(Item::Wine));
         sim.enter(Node::Ritual).choose("Place the creased feather");
         sim.enter(Node::Ritual).choose("Place the burning candle");
         sim.enter(Node::Ritual)
@@ -1263,6 +1270,32 @@ mod tests {
         assert_eq!(sim.p.ritual_stars(), Some(1));
         assert_notes_match_counter(&sim.p);
         assert_eq!(sim.p.ritual_notes.len(), 4);
+    }
+
+    #[test]
+    fn the_circle_can_be_drawn_with_wine_without_a_knife() {
+        let mut sim = Sim::new(Meta::default());
+        sim.p.give(Item::Wine);
+        sim.p.give(Item::RedHerring);
+        sim.enter(Node::Ritual).choose("I will roll it in");
+        sim.enter(Node::Ritual)
+            .choose("Let's draw the invocation circle");
+        // The red herring and the player's own blood need the knife.
+        assert!(!sim.has_choice("Cut yourself"));
+        assert!(!sim.has_choice("Use the red herring"));
+        sim.choose("Use the wine");
+        assert_eq!(sim.p.circle, RitualCircle::Unfinished);
+        assert!(!sim.p.has(Item::Wine));
+        assert!(sim.sfx.contains(&Sfx::PentagramDraw));
+    }
+
+    #[test]
+    fn the_circle_cannot_be_drawn_without_a_knife_or_wine() {
+        let mut sim = Sim::new(Meta::default());
+        sim.p.give(Item::RedHerring);
+        sim.enter(Node::Ritual).choose("I will roll it in");
+        sim.enter(Node::Ritual);
+        assert!(!sim.has_choice("Let's draw the invocation circle"));
     }
 
     #[test]
