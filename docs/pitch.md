@@ -63,7 +63,7 @@ Ulu is watching, and Ulu is a picky eater. At the end, the ritual is rated by ho
 | Tom Haase | Rockroot | Music, Sounds |
 | Gregor Huth | MacGreg | Character Design, Additional Art |
 
-**Thanks to** Max "Golden Skull Art" Heyder for the [2D Isometric Tileset – Village Interior](https://goldenskullart-store.itch.io/2d-isometric-tileset-village-interior).
+**Thanks to** Max "Golden Skull Art" Feuerriegel for the [2D Isometric Tileset – Village Interior](https://goldenskullart-store.itch.io/2d-isometric-tileset-village-interior).
 
 **Made with** Rust and the Bevy game engine.
 

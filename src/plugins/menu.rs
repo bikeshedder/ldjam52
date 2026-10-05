@@ -449,7 +449,7 @@ const TEAM: [Credit; 5] = [
 const THANKS: [(&str, Credit); 1] = [(
     "icons/credits/golden_skull_art.png",
     credit(
-        "Max Heyder",
+        "Max Feuerriegel",
         Some("Golden Skull Art"),
         "Village Interior Tileset",
     ),
