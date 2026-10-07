@@ -2,3 +2,4 @@
 *.tiled-session
 /savegame.yaml
 /dist
+/assets-src
