@@ -62,3 +62,10 @@ version:
 clean:
 	cargo clean
 	rm -rf $(DIST)
+
+deploy: linux windows
+	scp target/x86_64-pc-windows-gnu/release/ldjam52.exe web0004@ssh.pyrox.eu:b9r.eu/htdocs/ulu.exe
+	scp target/release/ldjam52 web0004@ssh.pyrox.eu:b9r.eu/htdocs/ulu.bin
+
+deploy-web: web
+	rsync -a --delete $(WEB)/ web0004@ssh.pyrox.eu:b9r.eu/htdocs/ulu/
