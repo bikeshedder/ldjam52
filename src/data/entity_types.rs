@@ -72,7 +72,7 @@ pub fn load_entity_types() -> anyhow::Result<EntityTypes> {
 }
 
 /// The files in `assets/entity_types`, read from disk.
-#[cfg(not(feature = "embed"))]
+#[cfg(not(any(feature = "embed", target_arch = "wasm32")))]
 fn entity_type_files() -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
     let dir = "assets/entity_types";
     let mut files = Vec::new();
@@ -90,8 +90,9 @@ fn entity_type_files() -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
     Ok(files)
 }
 
-/// The files in `assets/entity_types`, embedded into the binary.
-#[cfg(feature = "embed")]
+/// The files in `assets/entity_types`, embedded into the binary. Also used on
+/// the web, which has no file system.
+#[cfg(any(feature = "embed", target_arch = "wasm32"))]
 fn entity_type_files() -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
     static DIR: include_dir::Dir =
         include_dir::include_dir!("$CARGO_MANIFEST_DIR/assets/entity_types");

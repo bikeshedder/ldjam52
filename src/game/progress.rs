@@ -6,6 +6,8 @@ use std::collections::BTreeSet;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+/// Where the persistent state is kept: a file next to the game, or an entry in
+/// the local storage of the browser on the web.
 const SAVE_FILE: &str = "savegame.yaml";
 
 /// Number of [`Occupant`](super::script::Occupant)s behind the locked doors.
@@ -372,7 +374,8 @@ impl Progress {
     }
 }
 
-/// Progress which persists across runs and is saved to disk.
+/// Progress which persists across runs and is saved to disk (or to the local
+/// storage of the browser).
 #[derive(Resource, Debug, Default, Serialize, Deserialize)]
 pub struct Meta {
     #[serde(default)]
@@ -387,7 +390,7 @@ pub struct Meta {
 
 impl Meta {
     pub fn load() -> Self {
-        let Ok(content) = std::fs::read_to_string(SAVE_FILE) else {
+        let Some(content) = read_save() else {
             return Self::default();
         };
         serde_saphyr::from_str(&content).unwrap_or_else(|e| {
@@ -399,9 +402,40 @@ impl Meta {
     pub fn save(&self) {
         let result = serde_saphyr::to_string(self)
             .map_err(|e| e.to_string())
-            .and_then(|yaml| std::fs::write(SAVE_FILE, yaml).map_err(|e| e.to_string()));
+            .and_then(|yaml| write_save(&yaml));
         if let Err(e) = result {
             warn!("Could not write save file {SAVE_FILE:?}: {e}");
         }
     }
+}
+
+/// The content of the save file, if there is one.
+#[cfg(not(target_arch = "wasm32"))]
+fn read_save() -> Option<String> {
+    std::fs::read_to_string(SAVE_FILE).ok()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn write_save(yaml: &str) -> Result<(), String> {
+    std::fs::write(SAVE_FILE, yaml).map_err(|e| e.to_string())
+}
+
+/// The local storage of the browser, which persists across page loads.
+#[cfg(target_arch = "wasm32")]
+fn local_storage() -> Result<web_sys::Storage, String> {
+    web_sys::window()
+        .and_then(|window| window.local_storage().ok().flatten())
+        .ok_or_else(|| "local storage is not available".to_string())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn read_save() -> Option<String> {
+    local_storage().ok()?.get_item(SAVE_FILE).ok().flatten()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn write_save(yaml: &str) -> Result<(), String> {
+    local_storage()?
+        .set_item(SAVE_FILE, yaml)
+        .map_err(|e| format!("{e:?}"))
 }

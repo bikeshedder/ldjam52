@@ -34,6 +34,9 @@ const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 const MENU_BG: Color = Color::srgb(0.1, 0.1, 0.1);
 
+/// The main menu has no quit button in the browser, as there is nothing to quit to.
+const HAS_QUIT: bool = !cfg!(target_arch = "wasm32");
+
 fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta: Res<Meta>) {
     log::info!("main_menu_setup");
     commands.insert_resource(MenuSelection::default());
@@ -167,7 +170,14 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, meta:
                 ),
                 (
                     Button,
-                    button_node,
+                    Node {
+                        display: if HAS_QUIT {
+                            Display::Flex
+                        } else {
+                            Display::None
+                        },
+                        ..button_node
+                    },
                     BackgroundColor(NORMAL_BUTTON),
                     MenuButtonAction::Quit,
                     children![(Text::new("Quit"), button_text_font, TextColor(TEXT_COLOR))],
@@ -260,11 +270,16 @@ impl MenuState {
     /// The buttons of the screen from top to bottom.
     fn buttons(self) -> &'static [MenuButtonAction] {
         match self {
-            Self::Main => &[
+            Self::Main if HAS_QUIT => &[
                 MenuButtonAction::Play,
                 MenuButtonAction::Achievements,
                 MenuButtonAction::Credits,
                 MenuButtonAction::Quit,
+            ],
+            Self::Main => &[
+                MenuButtonAction::Play,
+                MenuButtonAction::Achievements,
+                MenuButtonAction::Credits,
             ],
             Self::Achievements | Self::Credits => &[MenuButtonAction::BackToMainMenu],
         }

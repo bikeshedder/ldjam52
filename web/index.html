@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ULU - The Harvest</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+  /* The game fills the page (see `fit_canvas_to_parent` in src/main.rs) */
+  canvas {
+    display: block;
+    outline: none;
+  }
+  #loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    color: #ccc;
+    font: 20px sans-serif;
+    text-align: center;
+    pointer-events: none;
+  }
+  #loading h1 {
+    margin: 0;
+    font-size: 2em;
+    color: #d9332a;
+  }
+  #loading.error #status {
+    color: #e55;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="loading">
+  <h1>ULU</h1>
+  <div>The Harvest</div>
+  <div id="status">Loading…</div>
+</div>
+<script type="module">
+  import init from "./ulu.js";
+
+  const loading = document.getElementById("loading");
+  const status = document.getElementById("status");
+
+  // Downloads the WebAssembly module by hand to show the progress, it's big.
+  async function download(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`${url}: ${response.status} ${response.statusText}`);
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+      received += value.length;
+      status.textContent = `Loading… ${(received / 1048576).toFixed(1)} MB`;
+    }
+    const bytes = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return bytes;
+  }
+
+  try {
+    const module = await download("./ulu_bg.wasm");
+    status.textContent = "Starting…";
+    await init({ module_or_path: module });
+    loading.remove();
+    document.getElementById("game").focus();
+  } catch (error) {
+    console.error(error);
+    loading.classList.add("error");
+    status.textContent = `The game could not be started: ${error}`;
+  }
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use bevy::{
+    asset::AssetMetaCheck,
     camera::ScalingMode,
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
@@ -61,14 +62,30 @@ fn main() -> anyhow::Result<()> {
     app.add_plugins(bevy_embedded_assets::EmbeddedAssetPlugin {
         mode: bevy_embedded_assets::PluginMode::ReplaceDefault,
     });
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            title: String::from("ULU - The Harvest"),
-            present_mode: PresentMode::Immediate,
-            ..default()
-        }),
-        ..default()
-    }))
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: String::from("ULU - The Harvest"),
+                    // Don't wait for vsync where the platform allows it. The
+                    // browser doesn't, so `Immediate` would fail there.
+                    present_mode: PresentMode::AutoNoVsync,
+                    // Draw into the canvas of `web/index.html` and fill the page
+                    #[cfg(target_arch = "wasm32")]
+                    canvas: Some("#game".into()),
+                    #[cfg(target_arch = "wasm32")]
+                    fit_canvas_to_parent: true,
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(AssetPlugin {
+                // There are no `.meta` files, so don't look for them. On the web
+                // every lookup would be a failed HTTP request.
+                meta_check: AssetMetaCheck::Never,
+                ..default()
+            }),
+    )
     .add_plugins((
         FrameTimeDiagnosticsPlugin::default(),
         LogDiagnosticsPlugin::default(),

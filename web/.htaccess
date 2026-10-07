@@ -1,0 +1,5 @@
+# The WebAssembly module is big: serve it with the right type and compressed.
+AddType application/wasm .wasm
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/wasm application/javascript text/html
+</IfModule>
