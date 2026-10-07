@@ -46,6 +46,28 @@
   <div>The Harvest</div>
   <div id="status">Loading…</div>
 </div>
+<script>
+  // Browsers mute audio until the page received some input, and the game
+  // doesn't know when that happens. So keep track of the audio contexts it
+  // creates and resume them on the first key press, click or touch.
+  (() => {
+    const contexts = [];
+    window.AudioContext = class extends AudioContext {
+      constructor(...args) {
+        super(...args);
+        contexts.push(this);
+      }
+    };
+    const resume = () => {
+      for (const context of contexts) {
+        context.resume();
+      }
+    };
+    for (const type of ["keydown", "pointerdown", "touchstart"]) {
+      document.addEventListener(type, resume, { capture: true, passive: true });
+    }
+  })();
+</script>
 <script type="module">
   import init from "./ulu.js";
 
