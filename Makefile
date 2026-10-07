@@ -35,14 +35,16 @@ windows:
 	mkdir -p $(DIST)
 	cp target/$(WINDOWS_TARGET)/release/$(NAME).exe $(DIST)/$(NAME).exe
 
-# Everything needed to serve the game from a web server (see `make web-tools`)
+# Everything needed to serve the game from a web server (see `make web-tools`).
+# The assets are made readable for everyone, whatever their permissions are
+# in the source tree, as the web server runs as a different user.
 web:
 	cargo build --profile wasm-release --target $(WASM_TARGET)
 	mkdir -p $(WEB)
 	wasm-bindgen --target web --no-typescript --out-dir $(WEB) --out-name ulu \
 		target/$(WASM_TARGET)/wasm-release/$(NAME).wasm
 	cp -r web/. $(WEB)/
-	rsync -a --delete --exclude='*.tiled-*' assets/ $(WEB)/assets/
+	rsync -a --delete --chmod=D755,F644 --exclude='*.tiled-*' assets/ $(WEB)/assets/
 
 # Installs the wasm target and the wasm-bindgen CLI matching the version in Cargo.lock
 web-tools:
